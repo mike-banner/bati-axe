@@ -1,17 +1,75 @@
-# BÂTI-AXE 2026
+# Nuxt Minimal Starter
 
-Plateforme de confiance sélective pour la chaîne de valeur du bâtiment.
+Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
 
-## Concept
-Filtre de qualité entre particuliers porteurs de projets et experts vérifiés du bâtiment.
+## Setup
 
-## Gouvernance technique
-Toute l'intelligence architecturale est centralisée dans le dossier `/docs`.
+Make sure to install dependencies:
 
-## Stack
-- **Framework** : Nuxt 3 (Vue 3)
-- **Base de données** : PostgreSQL (Supabase)
-- **Monétisation** : Stripe
-- **Validation** : Zod
+```bash
+# npm
+npm install
 
-Consultez `antigravity.md` ou `claude.md` pour les règles d'interaction avec les agents IA.
+# pnpm
+pnpm install
+
+# yarn
+yarn install
+
+# bun
+bun install
+```
+
+## Development Server
+
+Start the development server on `http://localhost:3000`:
+
+```bash
+# npm
+npm run dev
+
+# pnpm
+pnpm dev
+
+# yarn
+yarn dev
+
+# bun
+bun run dev
+```
+
+## Production
+
+Build the application for production:
+
+```bash
+# npm
+npm run build
+
+# pnpm
+pnpm build
+
+# yarn
+yarn build
+
+# bun
+bun run build
+```
+
+Locally preview production build:
+
+```bash
+# npm
+npm run preview
+
+# pnpm
+pnpm preview
+
+# yarn
+yarn preview
+
+# bun
+bun run preview
+```
+
+Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
