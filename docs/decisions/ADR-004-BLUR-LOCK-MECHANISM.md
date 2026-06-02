@@ -9,15 +9,15 @@ Le business model de BÂTI-AXE repose sur la vente d'un accès prioritaire aux l
 Après 24h, le lead devient public (gratuit) pour tous les pros inscrits, afin d'assurer au particulier qu'il sera contacté.
 
 ## Décision
-L'implémentation du floutage se fera **côté Backend API (Next.js Server Actions / Supabase RPC)** et non uniquement via Supabase Row Level Security (RLS) ou côté Frontend.
+L'implémentation du floutage se fera **côté Backend API (Nitro / Supabase RPC)** et non uniquement via Supabase Row Level Security (RLS) ou côté Frontend.
 
 ## Justification et Mécanisme
 Si le floutage est fait dans le frontend, les données circulent en clair sur le réseau (faille critique).
 Si le floutage est fait uniquement via RLS, le professionnel ne pourrait tout simplement *pas voir* la ligne du lead dans la base. Or, nous voulons qu'il voie l'existence du lead (budget, ville, urgence) pour créer la frustration (l'effet Teasing) qui pousse à l'abonnement, mais sans les coordonnées de contact.
 
 **Le Flux Technique :**
-1. Le composant Next.js appelle une Server Action (ou une View Supabase sécurisée).
-2. La logique vérifie l'état de l'abonnement du professionnel demandeur (via Stripe / Supabase `profiles.plan_status`).
+1. L'application Nuxt 3 appelle un endpoint d'API Nitro (ou une View Supabase sécurisée).
+2. La logique vérifie l'état de l'abonnement du professionnel demandeur (via Stripe / Supabase `professionals.subscription_status`).
 3. Elle compare `lead.created_at` avec le Timestamp actuel.
 4. Si (NON PREMIUM) ET (< 24h) :
    La réponse JSON transmise au client mute les données de manière irréversible avant envoi :

@@ -15,7 +15,7 @@ Nous structurons l'architecture actuelle pour que la migration vers AWS soit ind
 2. **Authentification** : Supabase Auth est basé sur le projet Open Source *GoTrue*. Les mots de passe sont hashés en `bcrypt`/`argon2`. Export total possible vers AWS Cognito ou Auth0.
 3. **Stockage** : Déjà mitigé (ADR-003). Nous utilisons Cloudflare R2 au lieu de Supabase Storage. Zéro migration de fichiers nécessaire.
 4. **API (PostgREST)** : Si nous quittons Supabase, nous perdrons les API auto-générées.
-   *Mitigation* : Toute la logique critique doit être encapsulée dans des Server Actions Next.js ou des Edge Functions. Le client (Astro/Next) ne doit **jamais** écrire de requêtes complexes via le SDK client Supabase.
+   *Mitigation* : Toute la logique critique doit être encapsulée dans des API Routes Nitro ou des Edge Functions. Le client Nuxt ne doit **jamais** écrire de requêtes complexes via le SDK client Supabase.
 
 ## Conséquences
 - **Positives** : Nous profitons de la vitesse de Supabase aujourd'hui sans hypothéquer le futur.

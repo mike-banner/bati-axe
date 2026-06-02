@@ -29,6 +29,9 @@
 | Architecture suringénierée (microservices Phase 1) | Ralentit, complexifie, sans bénéfice réel |
 | Paiements entre particuliers et artisans | Réglementation PSP complexe, hors scope |
 | Messagerie in-app avancée Phase 1 | Email suffit, feature creep |
+| **Scale national avant validation mono-ville** | **Pas de scale tant que conversion non prouvée sur la pilote** |
+| **Publication / SMS sans opt-in vérifié** | **Violation RGPD/LCEN, voir ADR-007** |
+| **Stack dual-frontend (Astro + Next)** | **Disproportionné en solo, voir ADR-008** |
 
 ---
 
@@ -49,3 +52,5 @@
 - Chat temps réel → Phase 2
 - Automatisation validation par IA → Phase 2
 - API publique pour partenaires → Phase 2
+- Scale multi-régions → après validation ville pilote
+- Vérification automatisée Kbis/Décennale via API officielles → Phase 2 (validation admin manuelle en Phase 1)

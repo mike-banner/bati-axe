@@ -21,27 +21,30 @@
 ## Architecture des Fichiers
 
 ```
-src/
-├── app/                    # Next.js App Router
-│   ├── (public)/           # Routes publiques (landing, SEO)
-│   ├── (auth)/             # Auth flows
-│   ├── (dashboard)/        # Dashboard particulier
-│   ├── (pro)/              # Dashboard professionnel
-│   ├── (admin)/            # Back-office admin
-│   └── api/v1/             # Webhooks & API publique
-├── components/
-│   ├── ui/                 # Composants atomiques (shadcn/ui)
-│   └── features/           # Composants logique métier
-├── lib/
-│   ├── supabase/           # Client Supabase (server/client)
-│   ├── stripe/             # Client Stripe
-│   ├── resend/             # Templates emails
-│   └── validations/        # Schémas Zod partagés
-├── actions/                # Server Actions organisées par domaine
-│   ├── leads.ts
-│   ├── professionals.ts
-│   └── payments.ts
-└── types/                  # Types TypeScript partagés
+.
+├── app.vue                 # Entrée de l'application
+├── nuxt.config.ts          # Configuration Nuxt 3
+├── pages/                  # Pages Nuxt (Unified App)
+│   ├── index.vue           # Landing / Vitrine publique
+│   ├── simulateur.vue      # Tunnel de capture 6 étapes
+│   ├── [metier]/[ville].vue # Annuaire dynamique (SSG/ISR)
+│   └── app/                # Application Pro (SSR Authentifié)
+│       ├── index.vue       # Dashboard Pro
+│       ├── leads/          # Liste et détail des leads
+│       └── profile/        # Profil et documents (Claim)
+├── components/             # Composants Vue 3
+│   ├── ui/                 # Composants UI (shadcn-vue)
+│   └── features/           # Composants métier (LeadCard, etc.)
+├── layouts/                # Layouts (public, pro, admin)
+├── middleware/             # Middlewares (ex: auth.global.ts)
+├── composables/            # State & hooks Vue (ex: useAuth.ts)
+├── server/                 # Backend Nitro
+│   ├── api/                # Routes API (/api/...)
+│   │   ├── leads.ts        # Floutage et locking
+│   │   ├── stripe/         # Webhooks et Checkout Stripe
+│   │   └── twilio/         # Webhooks Twilio SMS
+│   └── middleware/         # Logs, Sentry, security headers
+└── types/                  # Types TypeScript
     ├── database.ts         # Types générés Supabase
     └── api.ts              # Types réponses API
 ```
@@ -54,12 +57,12 @@ src/
 
 | Élément | Convention | Exemple |
 | :--- | :--- | :--- |
-| Composants React | `PascalCase` | `LeadCard.tsx` |
-| Fonctions / hooks | `camelCase` | `useLeadStatus()` |
-| Server Actions | `camelCase` + verbe | `createLead()`, `assignLeadToPro()` |
+| Composants Vue | `PascalCase` | `LeadCard.vue` |
+| Fonctions / composables | `camelCase` | `useLeadStatus()` |
+| Nitro Endpoints | `kebab-case` | `server/api/leads.ts` |
 | Constantes | `SCREAMING_SNAKE_CASE` | `MAX_LEADS_PER_PRO` |
 | Types / Interfaces | `PascalCase` | `type LeadStatus` |
-| Fichiers | `kebab-case` | `lead-card.tsx` |
+| Fichiers Vue | `PascalCase` ou `kebab-case` | `LeadCard.vue` |
 
 ---
 

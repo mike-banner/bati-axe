@@ -1,24 +1,27 @@
-# ADR-001 : Stack Technique BÂTI-AXE (Révision)
+# ADR-001 : Stack Technique BÂTI-AXE (Révision Nuxt-only)
 
-- **Date** : 2026-05-07
-- **Statut** : Accepted
-- **Auteurs** : @mike, @antigravity
+- **Date** : 2026-06-02
+- **Statut** : Accepted (révise la version 2026-05-07)
+- **Auteurs** : @mike
 
 ## Contexte
-Le projet BÂTI-AXE nécessite une infrastructure hybride capable de combiner une performance SEO extrême (pour l'acquisition de leads locaux) et une logique métier complexe et sécurisée (pour le dashboard Pro et la gestion des abonnements). Le stockage de milliers de documents PDF (décennales) représente un risque de coût caché important.
+Le projet BÂTI-AXE est porté en solo en phase prototype. La stratégie produit cible un **prototype mono-ville** (Carrières-sous-Poissy / 78) avant scale national. La complexité d'une stack dual-frontend (Astro + Next.js, monorepo Turborepo, deux runtimes UI) est disproportionnée pour ce besoin et augmente le risque d'abandon.
 
 ## Décision
-Utilisation du socle technologique "Best-of-Breed" suivant :
-- **Astro** (Hébergé sur Cloudflare Pages) : Pour la vitrine publique, le tunnel de simulation et les pages SEO dynamiques par ville/métier.
-- **Next.js 15+** (Hébergé sur Cloudflare Pages via @cloudflare/next-on-pages) : Pour l'application métier protégée (`app.batiaxe.fr`), la logique de floutage et l'intégration Stripe.
-- **Supabase (PostgreSQL)** : Comme unique source de vérité (Database, Auth) partagée entre Astro et Next.js.
-- **Cloudflare R2** : Pour le stockage des documents (Décennales), évitant les coûts d'egress de AWS/Supabase Storage.
-- **Twilio & Resend** : Pour le pipeline critique d'alertes SMS/Email.
+Stack minimaliste et homogène :
+- **Nuxt 3 (Vue 3)** : une seule application servant à la fois la vitrine publique (SSG / prerender via Nitro `routeRules`) et l'application pro authentifiée. Hébergée sur **Cloudflare Pages** (preset Nitro `cloudflare-pages`).
+- **Supabase (PostgreSQL)** : Database + Auth, source de vérité unique.
+- **Cloudflare R2** : stockage PDF (Décennales / Kbis), via Presigned URLs (voir ADR-003).
+- **Twilio** : SMS Teasing, déclenché uniquement après opt-in vérifié (voir ADR-007).
+- **Resend** : emails transactionnels et double opt-in.
+- **Stripe Billing** : abonnements PRO récurrents.
+- **Sentry + Axiom** : observabilité dès le jour 1.
 
 ## Conséquences
-- **Positives** : Vitesse foudroyante en acquisition (Astro SSG), coûts d'infrastructure proches de zéro, sécurité granulaire, coûts de stockage prédictibles (R2).
-- **Négatives** : Complexité accrue due à la gestion de deux repositories front-end (ou un monorepo lourd) et la nécessité de partager les types TypeScript générés par Supabase entre Astro et Next.js.
+- **Positives** : un seul langage UI (Vue), un seul deploy, un seul repo simple (pnpm workspaces sans Turborepo). Vélocité maximale en solo. Onboarding futur d'un dev unique.
+- **Négatives** : on perd la promesse "0 JS" d'Astro sur la vitrine. Mitigation : `routeRules` Nuxt `{ prerender: true }` sur les pages SEO + `payloadExtraction: false` + lazy-load des composants lourds. Cible Lighthouse > 90 acceptable en Phase 1, > 95 en optimisation Phase 6.
 
 ## Alternatives
-- **Tout en Next.js** : Rejeté. Le SSR de Next.js, même optimisé, est plus lourd et coûteux à scaler pour des dizaines de milliers de pages SEO locales que la génération statique (SSG) hyper-légère d'Astro.
-- **Supabase Storage** : Rejeté pour les documents lourds. Les coûts d'egress pourraient exploser avec 7000 pros uploadant/téléchargeant des PDFs volumineux.
+- **Astro + Next.js (ADR-001 v1)** : rejeté pour cause de complexité disproportionnée au stade prototype.
+- **Astro + Vue (Astro vitrine, Nuxt app)** : rejeté pour garder un seul framework et un seul deploy.
+- **Tout en Next.js** : rejeté car le dev débute sur l'écosystème Vue et ne veut pas apprendre React en parallèle.

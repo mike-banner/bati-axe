@@ -16,7 +16,7 @@ Le modèle économique de Cloudflare R2 ne facture pas les coûts de sortie de b
 
 ## Implémentation
 - La base de données Supabase stocke uniquement la **référence** (URL ou clé) du document dans la table `verifications`.
-- L'upload se fait depuis l'application Next.js vers R2 en utilisant des **Presigned URLs** (S3-compatible API) pour ne pas faire transiter les fichiers volumineux par le backend Next.js (bypass).
+- L'upload se fait depuis l'application Nuxt 3 vers R2 en utilisant des **Presigned URLs** (S3-compatible API) pour ne pas faire transiter les fichiers volumineux par le backend Nitro (bypass).
 - L'accès en lecture (par les admins) se fait via des Signed URLs temporaires pour garantir la confidentialité des pièces d'identité et contrats.
 
 ## Conséquences

@@ -1,7 +1,7 @@
 # API RULES
 
-> Règles pour toutes les routes API et Server Actions du projet.
-> Applicable à Next.js App Router.
+> Règles pour toutes les routes API et endpoints Nitro du projet.
+> Applicable à l'API Nuxt 3 (Nitro).
 
 ---
 
@@ -9,11 +9,11 @@
 
 | Type | Usage | Localisation |
 | :--- | :--- | :--- |
-| Server Actions | Mutations internes (forms, dashboard) | `app/_actions/*.ts` |
-| Route Handlers | Webhooks externes (Stripe, etc.) | `app/api/v1/*.ts` |
+| Nitro API Routes | Endpoints REST / RPC de l'application | `server/api/**/*.ts` |
+| Nitro Middlewares | Logs, Sentry, Security Headers | `server/middleware/*.ts` |
 | Supabase RPC | Requêtes DB complexes | Fonctions PostgreSQL |
 
-**Règle d'or :** Préférer Server Actions pour tout ce qui est interne. Les Route Handlers sont réservés aux webhooks et intégrations tierces.
+**Règle d'or :** Toute opération de mutation ou de lecture privée passe par les endpoints `/api/...` de Nitro. La logique RLS de Supabase sert de garde-fou final, mais l'API Nitro applique la logique métier (floutage, validation R2). No direct DB access from the client for write operations.
 
 ---
 
@@ -96,10 +96,9 @@ if (!validated.success) {
 
 ## Authentification & Autorisation
 
-- Chaque Server Action vérifie la session Supabase Auth
-- Chaque Route Handler valide le token Bearer
-- Middleware Next.js protège les routes privées par défaut
-- Les webhooks Stripe sont vérifiés via signature `stripe.webhooks.constructEvent()`
+- Chaque API Nitro privée vérifie la session Supabase Auth (via le module `@nuxtjs/supabase` server utilities)
+- Middleware de route Nuxt (`middleware/auth.ts`) protège les pages privées `/app/**` côté client
+- Les webhooks Stripe sont vérifiés via signature `stripe.webhooks.constructEvent()` dans l'endpoint Nitro dédié
 
 ---
 

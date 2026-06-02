@@ -1,6 +1,6 @@
 # 📋 SPÉCIFICATIONS FONCTIONNELLES DÉTAILLÉES
 
-## 1. Module de Capture (Simulateur Astro)
+## 1. Module de Capture (Simulateur Nuxt)
 ### Étapes du Tunnel :
 1. **Nature du Projet** : Sélection par icônes (Gros œuvre, Rénovation, Extension, etc.).
 2. **Détails Techniques** : Questions dynamiques selon le choix 1.
@@ -36,7 +36,7 @@
 
 ## 4. Notifications SMS (Teasing)
 ### Structure du message :
-> "BÂTI-AXE : Nouveau projet de Rénovation à Carrières-sous-Poissy ! Budget estimé : 45 000€. Déjà 2 pros sur le coup. Accédez au lead : https://app.batiaxe.fr/l/[id]"
+> "BÂTI-AXE : Nouveau projet de Rénovation à Carrières-sous-Poissy ! Budget estimé : 45 000€. Déjà 2 pros sur le coup. Accédez au lead : https://batiaxe.fr/app/leads/[id]"
 
 ### Logique d'envoi :
 - Le SMS est envoyé instantanément aux pros `PREMIUM` de la zone.
