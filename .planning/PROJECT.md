@@ -1,7 +1,7 @@
 # BÂTI-AXE
 
 ## What This Is
-BÂTI-AXE est une marketplace sélective de mise en relation B2B/B2C dans le bâtiment. Elle agit comme un tiers de confiance qui sécurise la chaîne de valeur en vérifiant les garanties décennales des professionnels.
+BÂTI-AXE est une marketplace sélective de mise en relation B2B/B2C dans le bâtiment. Elle agit comme un tiers de confiance qui sécurise la chaîne de valeur en vérifiant les garanties décennales des professionnels. Déploiement prototype-first sur Carrières-sous-Poissy (78).
 
 ## Core Value
 Garantir la sécurité et la confiance des chantiers de particuliers en les mettant en relation exclusive avec des professionnels du bâtiment certifiés (assurance décennale et labels vérifiés).
@@ -12,39 +12,32 @@ Garantir la sécurité et la confiance des chantiers de particuliers en les mett
 (None yet — ship to validate)
 
 ### Active
-- [ ] **CPTR-01**: Sélection dynamique par nature de projet (icônes)
-- [ ] **CPTR-02**: Localisation avec code postal (Focus 78)
-- [ ] **CPTR-03**: Saisie du budget estimé et délai souhaité
-- [ ] **CPTR-04**: Saisie des coordonnées de contact (nom, email, téléphone)
-- [ ] **CPTR-05**: Enregistrement sécurisé du projet anonyme sans compte requis
-- [ ] **LCK-01**: Floutage serveur (Nitro API) des coordonnées des prospects
-- [ ] **LCK-02**: Accès immédiat non flouté pour les pros PREMIUM via abonnement Stripe
-- [ ] **LCK-03**: Déblocage automatique gratuit après un délai d'attente de 24 heures pour les pros BASIC
-- [ ] **CLM-01**: Revendication de profil pour les prospects importés
-- [ ] **CLM-02**: Authentification de compte pro sécurisée
-- [ ] **CLM-03**: Chargement et stockage isolé de la pièce d'identité, du KBIS et de l'assurance décennale sur R2
-- [ ] **CLM-04**: Statut de vérification mis à jour après validation manuelle par l'administrateur
-- [ ] **SMS-01**: Teasing par SMS instantané aux pros PREMIUM après un dépôt de projet
-- [ ] **SMS-02**: Teasing par SMS avec délai de 30 minutes aux pros BASIC
-- [ ] **SMS-03**: Consentement SMS explicite obligatoire (RGPD / LCEN)
-- [ ] **ADM-01**: Interface de validation des documents administratifs (Kbis, décennale) stockés sur R2
-- [ ] **ADM-02**: Modération et nettoyage des leads suspects avant envoi aux artisans
-- [ ] **ADM-03**: Console d'analytics (taux d'ouverture SMS vs taux de clic)
+- [ ] **INFRA-01 à 04**: Setup Nuxt 3, Supabase CLI, Cloudflare Pages, middleware sécurité
+- [ ] **LEGAL-01 à 02**: Mentions légales, CGU, registre RGPD
+- [ ] **CPTR-01 à 05**: Simulateur de capture 6 étapes (Zéro Friction)
+- [ ] **LCK-01 à 03**: Le Verrou (floutage serveur + déblocage Premium/24h)
+- [ ] **CLM-01 à 04**: Claim, Auth, Upload R2, Validation admin
+- [ ] **SMS-01 à 03**: Teasing SMS opt-in (instantané Premium, différé Basic)
+- [ ] **ADM-01 à 03**: Console admin (validation docs, modération, analytics)
 
-## Out of Scope
-- **Real-time chat** — Trop de complexité pour la v1, le contact se fait par téléphone/SMS direct.
-- **Multi-villes initial** — Déploiement restreint à Carrières-sous-Poissy pour la Phase 1 pour valider le modèle localement.
+### Out of Scope
+- **Real-time chat** — Le contact se fait par téléphone/SMS direct.
+- **Multi-villes initial** — Restreint à Carrières-sous-Poissy pour valider le modèle.
+- **OAuth / SSO** — Email/password suffisant pour la Phase 1.
 
 ## Context
-- Phase prototype axée sur Carrières-sous-Poissy (78) pour valider la conversion avant de passer à l'échelle.
+- Phase prototype axée sur Carrières-sous-Poissy (78) pour valider la conversion avant scale.
 - Stack Serverless à faible coût mensuel (<50€) sur Cloudflare.
+- ~7 000 prospects bruts en table interne, jamais publics sans opt-in (ADR-007).
 
 ## Constraints
-- **Tech Stack**: Nuxt 3 (Vue 3) unique hébergé 100% sur Cloudflare Pages.
-- **Database**: PostgreSQL (Supabase) hébergé avec migrations CLI et RLS strict.
-- **Storage**: Cloudflare R2 pour documents et décennales.
-- **Privacy & Security**: Logique de floutage côté serveur Nitro obligatoire. Consentement explicite conforme LCEN pour teasing SMS.
-- **Environments**: Séparation stricte Dev (local), Staging (Cloudflare Pages Preview) et Prod.
+- **Tech Stack**: Nuxt 3 (Vue 3) unique hébergé 100% sur Cloudflare Pages (ADR-008).
+- **Database**: PostgreSQL (Supabase) avec migrations CLI et RLS strict.
+- **Storage**: Cloudflare R2 pour documents et décennales (ADR-003).
+- **URL Routing**: Hybride slug + nanoid(8) pour les profils pro (ADR-009).
+- **Privacy & Security**: Floutage côté serveur Nitro obligatoire (ADR-004). Consentement explicite conforme LCEN (ADR-007).
+- **Environments**: Dev (local Docker) / Staging (CF Pages Preview) / Prod (CF Pages main) (ADR-006).
+- **API**: Préfixe `/api/v1/`, validation Zod, format de réponse standardisé (API_RULES.md).
 
 ## Key Decisions
 | Decision | Rationale | Outcome |
@@ -53,7 +46,8 @@ Garantir la sécurité et la confiance des chantiers de particuliers en les mett
 | Floutage Nitro (ADR-004) | Sécurise les coordonnées clients côté serveur avant déblocage | — Pending |
 | R2 Storage (ADR-003) | Bypass le backend Supabase pour réduire les coûts d'egress | — Pending |
 | Séparation Env (ADR-006) | Isole le développement local des environnements staging/prod | — Pending |
-| RGPD/LCEN double opt-in (ADR-007) | Assure la conformité légale et protège la délivrabilité SMS | — Pending |
+| RGPD/LCEN double opt-in (ADR-007) | Conformité légale et protection de la délivrabilité SMS | — Pending |
+| URL hybride slug+ID (ADR-009) | SEO préservé, zéro collision, résistant aux changements de nom | — Pending |
 
 ---
-*Last updated: 2026-06-02 after Ingest Docs*
+*Last updated: 2026-06-02 after roadmap restructuration (5 phases) + ADR-009*

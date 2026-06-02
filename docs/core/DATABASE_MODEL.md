@@ -23,6 +23,8 @@
 
 ### `professionals` (Les Artisans/Pros publiables)
 - `id` (UUID, PK — lié à `auth.users` après claim)
+- `short_id` (Text, Unique, NOT NULL — nanoid(8), utilisé dans les URLs, voir ADR-009)
+- `canonical_slug` (Text — `{metier}-{ville}-{nom}-{short_id}`, régénéré si nom/ville change)
 - `email` (Unique)
 - `company_name`
 - `siret` (String, Unique)
