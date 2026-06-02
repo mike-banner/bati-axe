@@ -1,0 +1,15 @@
+{
+  "source_path": "docs/decisions/ADR-007-RGPD-LCEN.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "ADR-007 : Conformité RGPD / LCEN — Consentement & Démarchage",
+  "summary": "Mécanismes de conformité RGPD, LCEN et double opt-in pour prospects et SMS.",
+  "scope": [
+    "gdpr-compliance"
+  ],
+  "cross_refs": [],
+  "locked": true,
+  "precedence": null,
+  "notes": "Status: Accepted"
+}

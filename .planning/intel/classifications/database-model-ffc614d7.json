@@ -1,0 +1,17 @@
+{
+  "source_path": "docs/core/DATABASE_MODEL.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "🗄️ MODÈLE DE DONNÉES (DRAFT)",
+  "summary": "Modèle de données relationnel, schémas de tables, politiques RLS et notes de migration Supabase.",
+  "scope": [
+    "database-schema",
+    "rls-policies",
+    "migrations"
+  ],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

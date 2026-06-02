@@ -1,0 +1,15 @@
+{
+  "source_path": "docs/memory/roadmap.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "🗺️ FEUILLE DE ROUTE — BÂTI-AXE (Prototype-First)",
+  "summary": "Roadmap de développement initiale et historique des versions.",
+  "scope": [
+    "project-roadmap"
+  ],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

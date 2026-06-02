@@ -1,0 +1,15 @@
+{
+  "source_path": "docs/decisions/ADR-002-ASTRO-NEXT-SPLIT.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "ADR-002 : Architecture Dual-Frontend (Astro + Next.js)",
+  "summary": "Choix historique d'architecture multi-repos (Astro + Next.js), désormais remplacé par Nuxt 3 unique.",
+  "scope": [
+    "architecture-split"
+  ],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": "Status: Superseded"
+}

@@ -1,0 +1,15 @@
+{
+  "source_path": "docs/rules/CODING_RULES.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "CODING RULES",
+  "summary": "Règles de codage et conventions de fichiers Nuxt 3.",
+  "scope": [
+    "coding-standards"
+  ],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

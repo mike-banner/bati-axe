@@ -1,0 +1,15 @@
+{
+  "source_path": "docs/decisions/ADR-005-SUPABASE-EXIT-STRATEGY.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "ADR-005 : Exit Strategy & Migration AWS (Scale Phase)",
+  "summary": "Stratégie de migration de Supabase vers AWS (RDS, Cognito) si besoin.",
+  "scope": [
+    "exit-strategy"
+  ],
+  "cross_refs": [],
+  "locked": true,
+  "precedence": null,
+  "notes": "Status: Accepted"
+}

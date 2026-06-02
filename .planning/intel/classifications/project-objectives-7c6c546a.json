@@ -1,0 +1,17 @@
+{
+  "source_path": "docs/core/PROJECT_OBJECTIVES.md",
+  "type": "PRD",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "PROJECT OBJECTIVES — BÂTI-AXE",
+  "summary": "Objectifs business, techniques et produit pour la plateforme BÂTI-AXE.",
+  "scope": [
+    "business-goals",
+    "technical-performance",
+    "product-targets"
+  ],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

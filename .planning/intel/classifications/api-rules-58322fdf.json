@@ -1,0 +1,15 @@
+{
+  "source_path": "docs/rules/API_RULES.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": false,
+  "title": "API RULES",
+  "summary": "Règles de design d'API et d'utilisation de Nitro et Supabase.",
+  "scope": [
+    "api-guidelines"
+  ],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}
