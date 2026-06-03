@@ -22,13 +22,9 @@ export default defineEventHandler(async (event) => {
   if (error) throw createError({ statusCode: 500, statusMessage: 'Erreur serveur.' })
   if (!pro) throw createError({ statusCode: 404, statusMessage: 'Profil introuvable.' })
 
-  // Only expose verified or claimed profiles
-  if (!pro.is_verified && !pro.is_claimed) {
-    throw createError({ statusCode: 404, statusMessage: 'Profil non encore disponible.' })
-  }
+  if (!pro) throw createError({ statusCode: 404, statusMessage: 'Profil introuvable.' })
 
-  const slugFromUrl = slug
-  const needsRedirect = slugFromUrl !== pro.canonical_slug
+  const needsRedirect = slug !== pro.canonical_slug
 
   return {
     status: 'SUCCESS',
@@ -40,6 +36,7 @@ export default defineEventHandler(async (event) => {
       full_name: pro.full_name,
       postal_code: pro.postal_code,
       is_verified: pro.is_verified,
+      is_claimed: pro.is_claimed,
       decennal_status: pro.decennal_status,
       member_since: pro.created_at,
     }

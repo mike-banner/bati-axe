@@ -12,8 +12,8 @@ See: .planning/PROJECT.md (updated 2026-06-02)
 Phase: 4 of 5 (Le Verrou & Stripe Billing)
 Plan: 0 of 1 in current phase
 Status: Ready to plan
-Last activity: 2026-06-03 — Phase 3 Complétée (tunnel auth claim, upload R2, profil public ADR-009, console admin R2, thème blanc/noir aligné).
-Progress: [▓▓▓░░░░░░░] 40%
+Last activity: 2026-06-03 — Phase 3 Complétée + hotfixes post-phase (dashboard pro, profil pending, accès admin).
+Progress: [▓▓▓▓░░░░░░] 60%
 
 ## Performance Metrics
 
@@ -28,12 +28,24 @@ Progress: [▓▓▓░░░░░░░] 40%
 - [Pre-Phase]: Pivot Nuxt 3 unique (ADR-008).
 - [Pre-Phase]: URL hybride slug + nanoid(8) pour les profils pro (ADR-009).
 - [Phase 2]: Intégration de Zod et client Service Role pour contourner le RLS client sur l'API publique `/api/v1/projects`.
+- [Phase 3]: Accès admin contrôlé par `ADMIN_EMAILS` env var (pas de table rôles en DB pour l'instant). Ajouter l'email dans `.env` local ET dans Cloudflare Pages > Settings > Environment variables en prod.
+
+### Known Patterns (à appliquer dans les prochaines phases)
+
+**Ajouter un admin** : mettre l'email dans `ADMIN_EMAILS` dans `.env` (local) et dans les env vars Cloudflare Pages (prod). Le check est dans `server/api/v1/admin/verify.post.ts` et `app/pages/admin/index.vue`.
+
+**Nouvelle route protégée** : utiliser `watchEffect(() => { if (!user.value) navigateTo('/pro/claim') })` en haut du `<script setup>` — ne pas utiliser le middleware global car `supabase.redirect` est à `false` (ADR).
+
+**Profil non encore vérifié** : ne jamais retourner 404 pour un profil existant — retourner les données avec `is_verified: false` et laisser la page afficher l'état pending. Réserver 404 aux profils introuvables en DB.
+
+**Variable d'env manquante** : documenter dans `.env.example` immédiatement après ajout dans le code. C'est le seul endroit committé qui liste toutes les vars requises.
 
 ### Pending Todos
 None.
 
 ### Blockers/Concerns
 - **Browser tests block** : L'environnement de navigation Chromium local a des soucis d'initialisation dans le sandbox, mais les tests d'API et compilations sont OK.
+- **ADMIN_EMAILS en prod** : à ajouter manuellement dans Cloudflare Pages > Settings > Environment variables avant de tester la console admin en production.
 
 ## Session Continuity
 
