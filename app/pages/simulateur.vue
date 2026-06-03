@@ -1,20 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
-import { 
-  Wrench, 
-  Home, 
-  Bolt, 
-  Droplet, 
-  Paintbrush, 
-  Shield, 
-  ArrowRight, 
-  ArrowLeft, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Loader2 
-} from 'lucide-vue-next'
 
-// Page Metadata for SEO & Layout
 useHead({
   title: 'Simulateur de Travaux — BÂTI-AXE',
   meta: [
@@ -22,85 +8,87 @@ useHead({
   ]
 })
 
-// Categories definitions
+// ─── Data ─────────────────────────────────────────────────────────────────────
 const categories = [
-  { id: 'maconnerie', label: 'Maçonnerie & Gros Œuvre', icon: Wrench, desc: 'Murs, dalles, extensions gros œuvre' },
-  { id: 'toiture', label: 'Charpente & Toiture', icon: Home, desc: 'Couverture, tuiles, étanchéité' },
-  { id: 'electricite', label: 'Électricité', icon: Bolt, desc: 'Mise aux normes, prises, tableau électrique' },
-  { id: 'plomberie', label: 'Plomberie & Chauffage', icon: Droplet, desc: 'Tuyauterie, sanitaires, chaudières' },
-  { id: 'peinture', label: 'Peinture & Finitions', icon: Paintbrush, desc: 'Murs, plafonds, revêtements' },
-  { id: 'isolation', label: 'Isolation & Cloisons', icon: Shield, desc: 'Placo, isolation combles/murs' }
+  { id: 'maconnerie',  label: 'Maçonnerie & Gros Œuvre', desc: 'Murs, dalles, extensions' },
+  { id: 'toiture',    label: 'Charpente & Toiture',      desc: 'Couverture, tuiles, étanchéité' },
+  { id: 'electricite',label: 'Électricité',               desc: 'Mise aux normes, tableau, prises' },
+  { id: 'plomberie',  label: 'Plomberie & Chauffage',    desc: 'Tuyauterie, sanitaires, chaudières' },
+  { id: 'peinture',   label: 'Peinture & Finitions',     desc: 'Murs, plafonds, revêtements' },
+  { id: 'isolation',  label: 'Isolation & Cloisons',     desc: 'Placo, combles, murs' },
 ]
 
-// Budget options
 const budgetRanges = [
-  { id: '< 5k', label: 'Moins de 5 000 €' },
-  { id: '5k-15k', label: '5 000 € à 15 000 €' },
+  { id: '< 5k',    label: 'Moins de 5 000 €' },
+  { id: '5k-15k',  label: '5 000 € à 15 000 €' },
   { id: '15k-30k', label: '15 000 € à 30 000 €' },
   { id: '30k-75k', label: '30 000 € à 75 000 €' },
-  { id: '> 75k', label: 'Plus de 75 000 €' }
+  { id: '> 75k',   label: 'Plus de 75 000 €' },
 ]
 
-// Simulator state
-const step = ref(1)
-const totalSteps = 6
+// ─── State ────────────────────────────────────────────────────────────────────
+const step         = ref(1)
+const totalSteps   = 6
 const isSubmitting = ref(false)
-const submitError = ref<string | null>(null)
-const submitSuccess = ref(false)
+const submitError  = ref<string | null>(null)
 const createdProjectId = ref<string | null>(null)
 
-// Form data
 const form = reactive({
-  category: '',
-  description: '',
-  budget_range: '',
-  postal_code: '',
-  customer_name: '',
+  category:       '',
+  description:    '',
+  budget_range:   '',
+  postal_code:    '',
+  customer_name:  '',
   customer_email: '',
   customer_phone: '',
-  cgu_accepted: false,
-  sms_opt_in: false
+  cgu_accepted:   false,
+  sms_opt_in:     false,
 })
 
-// Validation per step
+// touched for step 5 contact fields
+const touched = reactive({ name: false, email: false, phone: false })
+
+// ─── Regex ────────────────────────────────────────────────────────────────────
+const RE_EMAIL    = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+const RE_PHONE_FR = /^(?:(?:\+|00)33|0)[1-9](?:[\s.-]?\d{2}){4}$/
+
+// ─── Validation ───────────────────────────────────────────────────────────────
 const isStepValid = computed(() => {
   switch (step.value) {
-    case 1:
-      return !!form.category
-    case 2:
-      return form.description.trim().length >= 20
-    case 3:
-      return !!form.budget_range
-    case 4:
-      return form.postal_code === '78955' // Phase 2: only pilot zone Carrières-sous-Poissy
-    case 5:
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      const phoneRegex = /^(?:(?:\+|00)33|0)[1-9](?:[\s.-]*\d{2}){4}$/
-      return (
-        form.customer_name.trim().length >= 2 &&
-        emailRegex.test(form.customer_email) &&
-        phoneRegex.test(form.customer_phone)
-      )
-    case 6:
-      return form.cgu_accepted
-    default:
-      return false
+    case 1: return !!form.category
+    case 2: return form.description.trim().length >= 20
+    case 3: return !!form.budget_range
+    case 4: return form.postal_code === '78955'
+    case 5: return (
+      form.customer_name.trim().length >= 2 &&
+      RE_EMAIL.test(form.customer_email) &&
+      RE_PHONE_FR.test(form.customer_phone)
+    )
+    case 6: return form.cgu_accepted
+    default: return false
   }
 })
 
-// Progress percentage
+const contactErrors = computed(() => ({
+  name:  touched.name  && form.customer_name.trim().length < 2 ? 'Nom requis.' : '',
+  email: touched.email && !RE_EMAIL.test(form.customer_email) ? 'Adresse e-mail invalide.' : '',
+  phone: touched.phone && !RE_PHONE_FR.test(form.customer_phone) ? 'Numéro français invalide (ex: 06 12 34 56 78).' : '',
+}))
+
 const progress = computed(() => Math.round(((step.value - 1) / totalSteps) * 100))
 
-// Actions
-const selectCategory = (catId: string) => {
-  form.category = catId
-  nextStep()
+const stepLabels: Record<number, string> = {
+  1: 'Type de travaux',
+  2: 'Description',
+  3: 'Budget',
+  4: 'Localisation',
+  5: 'Vos coordonnées',
+  6: 'Validation',
 }
 
-const selectBudget = (budget: string) => {
-  form.budget_range = budget
-  nextStep()
-}
+// ─── Handlers ─────────────────────────────────────────────────────────────────
+const selectCategory = (id: string) => { form.category = id; nextStep() }
+const selectBudget   = (id: string) => { form.budget_range = id; nextStep() }
 
 const nextStep = () => {
   if (step.value < totalSteps && isStepValid.value) {
@@ -117,36 +105,31 @@ const prevStep = () => {
 }
 
 const handleSubmit = async () => {
+  touched.name = true; touched.email = true; touched.phone = true
   if (!isStepValid.value) return
-  
   isSubmitting.value = true
-  submitError.value = null
-  
+  submitError.value  = null
+
   try {
     const { data, error } = await useFetch('/api/v1/projects', {
       method: 'POST',
       body: {
-        category: form.category,
-        description: form.description,
-        budget_range: form.budget_range,
-        postal_code: form.postal_code,
-        customer_name: form.customer_name,
+        category:       form.category,
+        description:    form.description,
+        budget_range:   form.budget_range,
+        postal_code:    form.postal_code,
+        customer_name:  form.customer_name,
         customer_email: form.customer_email,
         customer_phone: form.customer_phone,
-        cgu_accepted: form.cgu_accepted,
-        sms_opt_in: form.sms_opt_in
+        cgu_accepted:   form.cgu_accepted,
+        sms_opt_in:     form.sms_opt_in,
       }
     })
 
-    if (error.value) {
-      const errorMessage = error.value.data?.data?.message || error.value.statusMessage || "Une erreur est survenue lors de la soumission."
-      throw new Error(errorMessage)
-    }
-
-    if (data.value && data.value.status === 'SUCCESS') {
+    if (error.value) throw new Error(error.value.data?.data?.message || error.value.statusMessage || 'Une erreur est survenue.')
+    if (data.value?.status === 'SUCCESS') {
       createdProjectId.value = data.value.projectId
-      submitSuccess.value = true
-      step.value = 7 // Success screen
+      step.value = 7
     }
   } catch (err: any) {
     submitError.value = err.message || 'Une erreur serveur est survenue. Veuillez réessayer.'
@@ -157,281 +140,306 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-    <!-- Glow effects in background -->
-    <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl -z-10 animate-pulse"></div>
-    <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl -z-10 animate-pulse"></div>
+  <div class="min-h-[calc(100vh-3.5rem)] bg-background flex items-start justify-center px-4 py-12 md:py-16">
+    <div class="w-full max-w-xl">
 
-    <div class="w-full max-w-2xl bg-zinc-900/70 border border-zinc-800/80 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden relative">
-      <!-- Top animated progress line -->
-      <div 
-        class="h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-300 ease-out"
-        :style="{ width: `${progress}%` }"
-      ></div>
+      <!-- ─── Success ─────────────────────────────────────────────────────── -->
+      <div v-if="step === 7" class="py-8">
+        <div class="flex items-center justify-center w-12 h-12 rounded-full bg-foreground text-background mb-8">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+          </svg>
+        </div>
+        <h1 class="text-3xl font-black tracking-tight text-foreground mb-3" style="text-wrap: balance">
+          Projet enregistré.
+        </h1>
+        <p class="text-sm text-muted-foreground leading-relaxed mb-8 max-w-sm" style="text-wrap: pretty">
+          Votre demande a été transmise aux artisans partenaires de Carrières-sous-Poissy. Vous recevrez un premier contact sous 2 minutes si un artisan abonné est disponible.
+        </p>
+        <div v-if="createdProjectId" class="p-4 border border-border rounded-lg mb-8">
+          <p class="text-xs text-muted-foreground mb-1">Référence de votre projet</p>
+          <code class="font-mono text-sm text-foreground select-all">{{ createdProjectId }}</code>
+        </div>
+        <NuxtLink
+          to="/"
+          class="inline-flex items-center justify-center h-11 px-6 border border-border text-foreground text-sm font-medium rounded-md hover:bg-muted transition-colors"
+        >
+          Retour à l'accueil
+        </NuxtLink>
+      </div>
 
-      <!-- Main simulator content wrapper -->
-      <div class="p-6 md:p-10">
+      <!-- ─── Simulator steps ───────────────────────────────────────────── -->
+      <template v-else>
+
         <!-- Header -->
-        <div class="mb-8 flex justify-between items-center" v-if="step <= totalSteps">
-          <div>
-            <span class="text-xs font-semibold uppercase tracking-wider text-indigo-400">Étape {{ step }} sur {{ totalSteps }}</span>
-            <h1 class="text-xl font-bold tracking-tight text-white mt-1">Estimez votre projet</h1>
+        <div class="mb-8">
+          <div class="flex items-center justify-between mb-6">
+            <span class="text-xs text-muted-foreground">Étape {{ step }} / {{ totalSteps }} — {{ stepLabels[step] }}</span>
+            <NuxtLink to="/" class="text-xs text-muted-foreground hover:text-foreground transition-colors">Annuler</NuxtLink>
           </div>
-          <NuxtLink to="/" class="text-xs text-zinc-400 hover:text-white transition-colors">
-            Annuler
-          </NuxtLink>
+          <!-- Progress bar -->
+          <div class="h-0.5 w-full bg-border rounded-full overflow-hidden">
+            <div
+              class="h-full bg-foreground transition-all duration-300 ease-out"
+              :style="{ width: `${progress}%` }"
+            />
+          </div>
         </div>
 
-        <!-- Step 1: Work Category -->
-        <div v-if="step === 1" class="space-y-6">
-          <h2 class="text-lg font-medium text-white">Quel est le type de travaux ?</h2>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button 
-              v-for="cat in categories" 
+        <!-- ─── Step 1: Category ─────────────────────────────────────────── -->
+        <div v-if="step === 1" class="space-y-4">
+          <h1 class="text-2xl font-black tracking-tight text-foreground" style="text-wrap: balance">
+            Quel type de travaux ?
+          </h1>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+            <button
+              v-for="cat in categories"
               :key="cat.id"
               @click="selectCategory(cat.id)"
-              class="flex items-start gap-4 p-4 rounded-xl border bg-zinc-900/50 hover:bg-zinc-800/80 text-left transition-all group duration-200"
-              :class="form.category === cat.id ? 'border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-950/20' : 'border-zinc-800 hover:border-zinc-700'"
+              class="flex items-center justify-between p-4 border rounded-md text-left transition-colors"
+              :class="form.category === cat.id
+                ? 'border-foreground bg-foreground text-background'
+                : 'border-border hover:border-foreground/40 hover:bg-muted'"
             >
-              <div class="p-3 rounded-lg bg-zinc-800 text-zinc-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors duration-200 shrink-0">
-                <component :is="cat.icon" class="w-6 h-6" />
-              </div>
               <div>
-                <h3 class="font-semibold text-white group-hover:text-indigo-300 transition-colors">{{ cat.label }}</h3>
-                <p class="text-xs text-zinc-400 mt-1 line-clamp-2">{{ cat.desc }}</p>
+                <p class="text-sm font-semibold">{{ cat.label }}</p>
+                <p class="text-xs mt-0.5" :class="form.category === cat.id ? 'text-background/70' : 'text-muted-foreground'">{{ cat.desc }}</p>
               </div>
+              <svg v-if="form.category === cat.id" class="w-4 h-4 shrink-0 ml-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+              </svg>
             </button>
           </div>
         </div>
 
-        <!-- Step 2: Description -->
-        <div v-if="step === 2" class="space-y-6">
-          <h2 class="text-lg font-medium text-white">Décrivez brièvement votre projet</h2>
-          <p class="text-sm text-zinc-400">
-            Détaillez le type de prestation, la surface approximative, et les contraintes éventuelles.
-          </p>
-          <div class="relative">
-            <textarea 
+        <!-- ─── Step 2: Description ──────────────────────────────────────── -->
+        <div v-if="step === 2" class="space-y-4">
+          <h1 class="text-2xl font-black tracking-tight text-foreground" style="text-wrap: balance">
+            Décrivez votre projet
+          </h1>
+          <p class="text-sm text-muted-foreground">Type de prestation, surface approximative, contraintes éventuelles.</p>
+          <div class="relative pt-2">
+            <textarea
               v-model="form.description"
-              rows="6"
+              rows="7"
               maxlength="1000"
-              class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
-              placeholder="Exemple: Je souhaite refaire entièrement l'électricité de mon appartement de 55m². Le tableau électrique est d'époque et à changer entièrement. Prévoir environ 15 prises et 8 points lumineux..."
-            ></textarea>
-            <div class="absolute bottom-3 right-3 text-xs" :class="form.description.length >= 20 ? 'text-zinc-500' : 'text-amber-500 font-medium'">
-              {{ form.description.length }} / 20 caractères min
-            </div>
+              placeholder="Exemple : refaire entièrement l'électricité d'un appartement de 55 m². Tableau électrique d'époque à remplacer. Environ 15 prises et 8 points lumineux à prévoir."
+              class="w-full border border-border rounded-md p-3 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 transition-colors resize-none"
+            />
+            <span
+              class="absolute bottom-3 right-3 text-xs"
+              :class="form.description.length >= 20 ? 'text-muted-foreground' : 'text-amber-600 font-medium'"
+            >{{ form.description.length }} / 20 min</span>
           </div>
         </div>
 
-        <!-- Step 3: Budget Range -->
-        <div v-if="step === 3" class="space-y-6">
-          <h2 class="text-lg font-medium text-white">Quel est le budget estimé ?</h2>
-          <div class="space-y-3">
-            <button 
-              v-for="b in budgetRanges" 
+        <!-- ─── Step 3: Budget ───────────────────────────────────────────── -->
+        <div v-if="step === 3" class="space-y-4">
+          <h1 class="text-2xl font-black tracking-tight text-foreground">Budget estimé</h1>
+          <div class="space-y-2 pt-2">
+            <button
+              v-for="b in budgetRanges"
               :key="b.id"
               @click="selectBudget(b.id)"
-              class="w-full flex items-center justify-between p-4 rounded-xl border bg-zinc-900/50 hover:bg-zinc-800/80 text-left transition-all duration-200"
-              :class="form.budget_range === b.id ? 'border-indigo-500 bg-indigo-950/20 text-white font-medium' : 'border-zinc-800 text-zinc-300 hover:border-zinc-700'"
+              class="w-full flex items-center justify-between p-4 border rounded-md text-left transition-colors"
+              :class="form.budget_range === b.id
+                ? 'border-foreground bg-foreground text-background'
+                : 'border-border hover:border-foreground/40 hover:bg-muted text-foreground'"
             >
-              <span>{{ b.label }}</span>
-              <div 
-                class="w-5 h-5 rounded-full border flex items-center justify-center transition-colors"
-                :class="form.budget_range === b.id ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-zinc-700'"
-              >
-                <div class="w-2.5 h-2.5 rounded-full bg-white" v-if="form.budget_range === b.id"></div>
-              </div>
+              <span class="text-sm font-medium">{{ b.label }}</span>
+              <svg v-if="form.budget_range === b.id" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+              </svg>
+              <div v-else class="w-4 h-4 rounded-full border border-border shrink-0" />
             </button>
           </div>
         </div>
 
-        <!-- Step 4: Zip Code / Location -->
-        <div v-if="step === 4" class="space-y-6">
-          <h2 class="text-lg font-medium text-white">Où se situent les travaux ?</h2>
-          <p class="text-sm text-zinc-400">
-            Pendant la phase de lancement pilote, le service est disponible uniquement sur la commune de <strong>Carrières-sous-Poissy (78955)</strong>.
+        <!-- ─── Step 4: Location ─────────────────────────────────────────── -->
+        <div v-if="step === 4" class="space-y-4">
+          <h1 class="text-2xl font-black tracking-tight text-foreground">Où se situent les travaux ?</h1>
+          <p class="text-sm text-muted-foreground">
+            Zone pilote actuelle : <strong class="text-foreground">Carrières-sous-Poissy (78955)</strong>.
           </p>
-          <div class="space-y-4">
-            <div class="relative">
-              <input 
-                type="text" 
-                v-model="form.postal_code"
-                placeholder="Ex: 78955"
-                maxlength="5"
-                class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-white text-lg font-semibold tracking-widest placeholder-zinc-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
-              />
-            </div>
-            
-            <!-- Cover Alert -->
-            <div 
+          <div class="pt-2 space-y-3">
+            <input
+              type="text"
+              v-model="form.postal_code"
+              placeholder="78955"
+              maxlength="5"
+              inputmode="numeric"
+              class="w-full h-14 px-4 border border-border rounded-md text-xl font-semibold tracking-widest bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 transition-colors"
+            />
+            <div
               v-if="form.postal_code.length === 5"
-              class="p-4 rounded-xl flex items-start gap-3 transition-all"
-              :class="form.postal_code === '78955' ? 'bg-emerald-950/30 border border-emerald-900 text-emerald-300' : 'bg-amber-950/30 border border-amber-900 text-amber-300'"
+              class="flex items-start gap-3 p-4 border rounded-md"
+              :class="form.postal_code === '78955'
+                ? 'border-foreground/30 bg-muted'
+                : 'border-red-200 bg-red-50'"
             >
-              <CheckCircle2 class="w-5 h-5 shrink-0 mt-0.5" v-if="form.postal_code === '78955'" />
-              <AlertTriangle class="w-5 h-5 shrink-0 mt-0.5" v-else />
+              <svg v-if="form.postal_code === '78955'" class="w-4 h-4 shrink-0 mt-0.5 text-foreground" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+              </svg>
+              <svg v-else class="w-4 h-4 shrink-0 mt-0.5 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+              </svg>
               <div>
-                <p class="font-semibold text-sm" v-if="form.postal_code === '78955'">Zone pilote éligible !</p>
-                <p class="font-semibold text-sm" v-else>Zone non couverte</p>
-                <p class="text-xs opacity-90 mt-0.5">
-                  {{ form.postal_code === '78955' 
-                    ? 'Le service est entièrement disponible à Carrières-sous-Poissy. Nos artisans partenaires locaux recevront votre demande.' 
-                    : 'Le simulateur est restreint à la ville de Carrières-sous-Poissy (78955) pour l\'instant.' 
-                  }}
+                <p class="text-sm font-semibold" :class="form.postal_code === '78955' ? 'text-foreground' : 'text-red-700'">
+                  {{ form.postal_code === '78955' ? 'Zone éligible' : 'Zone non couverte' }}
+                </p>
+                <p class="text-xs mt-0.5" :class="form.postal_code === '78955' ? 'text-muted-foreground' : 'text-red-600'">
+                  {{ form.postal_code === '78955'
+                    ? 'Le service est disponible à Carrières-sous-Poissy. Les artisans partenaires recevront votre demande.'
+                    : 'Le service est limité à Carrières-sous-Poissy (78955) pendant la phase pilote.' }}
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Step 5: Contact Identity -->
-        <div v-if="step === 5" class="space-y-6">
-          <h2 class="text-lg font-medium text-white">Vos coordonnées</h2>
-          <p class="text-sm text-zinc-400">
-            Ces coordonnées permettront de vous contacter pour qualifier votre demande et vous mettre en relation avec l'artisan.
-          </p>
-          <div class="space-y-4">
+        <!-- ─── Step 5: Contact ──────────────────────────────────────────── -->
+        <div v-if="step === 5" class="space-y-4">
+          <h1 class="text-2xl font-black tracking-tight text-foreground">Vos coordonnées</h1>
+          <p class="text-sm text-muted-foreground">Ces informations restent confidentielles jusqu'au moment du contact avec un artisan.</p>
+          <div class="space-y-4 pt-2">
             <div>
-              <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Nom Complet</label>
-              <input 
-                type="text" 
+              <label for="c-name" class="block text-sm font-medium text-foreground mb-1.5">Nom complet</label>
+              <input
+                id="c-name"
+                type="text"
                 v-model="form.customer_name"
                 placeholder="Jean Dupont"
-                class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                autocomplete="name"
+                @blur="touched.name = true"
+                class="w-full h-11 px-3 border rounded-md text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 transition-colors"
+                :class="contactErrors.name ? 'border-red-500' : 'border-border'"
               />
+              <p v-if="contactErrors.name" class="mt-1.5 text-xs text-red-600">{{ contactErrors.name }}</p>
             </div>
-
             <div>
-              <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Adresse E-mail</label>
-              <input 
-                type="email" 
+              <label for="c-email" class="block text-sm font-medium text-foreground mb-1.5">Adresse e-mail</label>
+              <input
+                id="c-email"
+                type="email"
                 v-model="form.customer_email"
                 placeholder="jean.dupont@exemple.com"
-                class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                autocomplete="email"
+                @blur="touched.email = true"
+                class="w-full h-11 px-3 border rounded-md text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 transition-colors"
+                :class="contactErrors.email ? 'border-red-500' : 'border-border'"
               />
+              <p v-if="contactErrors.email" class="mt-1.5 text-xs text-red-600">{{ contactErrors.email }}</p>
             </div>
-
             <div>
-              <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Numéro de Téléphone</label>
-              <input 
-                type="tel" 
+              <label for="c-phone" class="block text-sm font-medium text-foreground mb-1.5">Téléphone</label>
+              <input
+                id="c-phone"
+                type="tel"
                 v-model="form.customer_phone"
                 placeholder="06 12 34 56 78"
-                class="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                autocomplete="tel"
+                @blur="touched.phone = true"
+                class="w-full h-11 px-3 border rounded-md text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 transition-colors"
+                :class="contactErrors.phone ? 'border-red-500' : 'border-border'"
               />
-              <span class="text-[10px] text-zinc-500 mt-1 block">Format français (ex: 0612345678 ou +33612345678)</span>
+              <p v-if="contactErrors.phone" class="mt-1.5 text-xs text-red-600">{{ contactErrors.phone }}</p>
+              <p v-else class="mt-1.5 text-xs text-muted-foreground">Format français (0612345678 ou +33612345678).</p>
             </div>
           </div>
         </div>
 
-        <!-- Step 6: Confirmation & Consentements -->
-        <div v-if="step === 6" class="space-y-6">
-          <h2 class="text-lg font-medium text-white">Dernière étape : validation</h2>
-          <p class="text-sm text-zinc-400">
-            En soumettant votre projet, vous acceptez nos conditions et autorisez la mise en relation.
-          </p>
+        <!-- ─── Step 6: Validation ───────────────────────────────────────── -->
+        <div v-if="step === 6" class="space-y-5">
+          <h1 class="text-2xl font-black tracking-tight text-foreground">Confirmer et envoyer</h1>
 
-          <div class="space-y-4 border-t border-zinc-800 pt-6">
-            <!-- Consent CGU -->
-            <label class="flex items-start gap-3 cursor-pointer group">
-              <input 
-                type="checkbox" 
-                v-model="form.cgu_accepted" 
-                class="mt-1 w-4 h-4 rounded border-zinc-700 bg-zinc-950 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-zinc-900"
+          <!-- Récap -->
+          <div class="border border-border rounded-md divide-y divide-border text-sm">
+            <div class="flex items-center justify-between px-4 py-3">
+              <span class="text-muted-foreground">Type</span>
+              <span class="font-medium text-foreground">{{ categories.find(c => c.id === form.category)?.label }}</span>
+            </div>
+            <div class="flex items-center justify-between px-4 py-3">
+              <span class="text-muted-foreground">Budget</span>
+              <span class="font-medium text-foreground">{{ budgetRanges.find(b => b.id === form.budget_range)?.label }}</span>
+            </div>
+            <div class="flex items-center justify-between px-4 py-3">
+              <span class="text-muted-foreground">Zone</span>
+              <span class="font-medium text-foreground">{{ form.postal_code }}</span>
+            </div>
+          </div>
+
+          <div class="space-y-3 border-t border-border pt-5">
+            <label class="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                v-model="form.cgu_accepted"
+                class="mt-0.5 w-4 h-4 rounded border-border text-foreground"
               />
-              <span class="text-xs text-zinc-300 select-none group-hover:text-white transition-colors">
-                J'accepte les <NuxtLink to="/legal/cgu" target="_blank" class="text-indigo-400 underline hover:text-indigo-300">Conditions Générales d'Utilisation</NuxtLink> et consens au traitement de mes données conformément à la <NuxtLink to="/legal/confidentialite" target="_blank" class="text-indigo-400 underline hover:text-indigo-300">Politique de Confidentialité</NuxtLink>. <span class="text-red-500">*</span>
+              <span class="text-sm text-foreground leading-snug">
+                J'accepte les <NuxtLink to="/legal/cgu" target="_blank" class="underline underline-offset-2 hover:opacity-70">CGU</NuxtLink> et la <NuxtLink to="/legal/confidentialite" target="_blank" class="underline underline-offset-2 hover:opacity-70">politique de confidentialité</NuxtLink>. <span class="text-red-600">*</span>
               </span>
             </label>
-
-            <!-- Consent SMS Opt-In -->
-            <label class="flex items-start gap-3 cursor-pointer group">
-              <input 
-                type="checkbox" 
-                v-model="form.sms_opt_in" 
-                class="mt-1 w-4 h-4 rounded border-zinc-700 bg-zinc-950 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-zinc-900"
+            <label class="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                v-model="form.sms_opt_in"
+                class="mt-0.5 w-4 h-4 rounded border-border text-foreground"
               />
-              <span class="text-xs text-zinc-300 select-none group-hover:text-white transition-colors">
-                J'accepte de recevoir des notifications et alertes de suivi de mon projet par SMS. (Désinscription possible à tout moment en répondant STOP).
+              <span class="text-sm text-muted-foreground leading-snug">
+                J'accepte de recevoir des SMS de suivi sur ce projet. Désinscription par réponse STOP.
               </span>
             </label>
           </div>
 
-          <!-- Final Server Error Display -->
-          <div v-if="submitError" class="p-4 rounded-xl bg-red-950/30 border border-red-900 text-red-300 flex items-start gap-3">
-            <AlertTriangle class="w-5 h-5 shrink-0 mt-0.5" />
-            <div class="text-sm font-medium">{{ submitError }}</div>
+          <div v-if="submitError" role="alert" class="flex items-start gap-2.5 p-3 border border-red-200 bg-red-50 rounded-md text-sm text-red-700">
+            <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+            </svg>
+            <span>{{ submitError }}</span>
           </div>
         </div>
 
-        <!-- Step 7: Success Page -->
-        <div v-if="step === 7" class="text-center py-10 space-y-6">
-          <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 animate-bounce">
-            <CheckCircle2 class="w-10 h-10" />
-          </div>
-          <div>
-            <h2 class="text-2xl font-bold text-white tracking-tight">Projet enregistré avec succès !</h2>
-            <p class="text-sm text-zinc-400 mt-2 max-w-md mx-auto">
-              Merci pour votre confiance. Votre projet a été qualifié pour la zone de <strong>Carrières-sous-Poissy</strong>. Nos artisans partenaires vont être notifiés.
-            </p>
-          </div>
-          <div class="p-4 bg-zinc-950 border border-zinc-800/80 rounded-xl max-w-sm mx-auto text-xs text-zinc-400">
-            Identifiant du projet : <code class="font-mono text-zinc-200 select-all">{{ createdProjectId }}</code>
-          </div>
-          <div class="pt-4">
-            <NuxtLink to="/" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl inline-flex items-center gap-2 shadow-lg shadow-indigo-500/25 transition-all duration-200">
-              Retour à l'accueil
-            </NuxtLink>
-          </div>
-        </div>
-
-        <!-- Navigation Buttons -->
-        <div class="mt-8 pt-6 border-t border-zinc-800/80 flex items-center justify-between" v-if="step <= totalSteps">
-          <button 
+        <!-- ─── Navigation ───────────────────────────────────────────────── -->
+        <div class="mt-8 pt-6 border-t border-border flex items-center justify-between">
+          <button
             type="button"
             @click="prevStep"
-            class="px-4 py-2 text-sm font-medium rounded-xl border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors disabled:opacity-30 disabled:pointer-events-none"
             :disabled="step === 1 || isSubmitting"
+            class="inline-flex items-center gap-1.5 h-10 px-4 border border-border text-sm font-medium text-foreground rounded-md hover:bg-muted transition-colors disabled:opacity-30 disabled:pointer-events-none"
           >
-            <span class="flex items-center gap-1"><ArrowLeft class="w-4 h-4" /> Retour</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            Retour
           </button>
 
-          <button 
-            v-if="step < totalSteps"
+          <!-- Continue button (steps 1–5, only shown when step needs explicit next; steps 1 and 3 auto-advance) -->
+          <button
+            v-if="step < totalSteps && step !== 1 && step !== 3"
             type="button"
             @click="nextStep"
-            class="px-5 py-2.5 text-sm font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-1 shadow-lg shadow-indigo-500/25 transition-all duration-200 disabled:opacity-30 disabled:pointer-events-none"
             :disabled="!isStepValid"
+            class="inline-flex items-center gap-1.5 h-10 px-5 bg-foreground text-background text-sm font-semibold rounded-md hover:opacity-80 transition-opacity disabled:opacity-30 disabled:pointer-events-none"
           >
-            Continuer <ArrowRight class="w-4 h-4" />
+            Continuer
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/></svg>
           </button>
 
-          <button 
-            v-else
+          <!-- Steps 1 and 3 auto-advance on click — show passive indicator -->
+          <span v-else-if="step < totalSteps" class="text-xs text-muted-foreground">Sélectionnez une option</span>
+
+          <!-- Submit button (step 6) -->
+          <button
+            v-if="step === totalSteps"
             type="button"
             @click="handleSubmit"
-            class="px-5 py-2.5 text-sm font-semibold rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:opacity-90 text-white flex items-center gap-2 shadow-lg shadow-purple-500/25 transition-all duration-200 disabled:opacity-30 disabled:pointer-events-none"
             :disabled="!isStepValid || isSubmitting"
+            class="inline-flex items-center gap-2 h-10 px-5 bg-foreground text-background text-sm font-semibold rounded-md hover:opacity-80 transition-opacity disabled:opacity-30 disabled:pointer-events-none"
           >
-            <Loader2 class="w-4 h-4 animate-spin" v-if="isSubmitting" />
-            <span v-else>Soumettre mon projet</span>
+            <svg v-if="isSubmitting" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+            <span>{{ isSubmitting ? 'Envoi en cours…' : 'Envoyer mon projet' }}</span>
           </button>
         </div>
-      </div>
+
+      </template>
     </div>
   </div>
 </template>
-
-<style scoped>
-/* Smooth transition between steps styling */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>
