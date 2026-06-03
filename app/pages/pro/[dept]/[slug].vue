@@ -10,9 +10,12 @@ if (data.value?.needsRedirect && data.value?.canonicalSlug) {
   await navigateTo(`/pro/${dept}/${data.value.canonicalSlug}`, { redirectCode: 301, replace: true })
 }
 
+// Hard 404 only if the pro doesn't exist at all
 if (error.value?.statusCode === 404) {
   throw createError({ statusCode: 404, statusMessage: 'Profil introuvable.' })
 }
+
+const isPending = computed(() => data.value?.pro && !data.value.pro.is_verified)
 
 const pro = computed(() => data.value?.pro)
 
@@ -32,7 +35,18 @@ useHead(() => ({
 <template>
   <div class="max-w-2xl mx-auto px-6 py-16 md:py-24">
 
-    <div v-if="pro">
+    <!-- Pending state — pro exists but not yet verified -->
+    <div v-if="isPending" class="py-8">
+      <div class="flex items-center justify-center w-12 h-12 rounded-full border border-border mx-auto mb-6">
+        <svg class="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <h1 class="text-2xl font-black tracking-tight text-foreground text-center mb-3">Profil en cours de vérification</h1>
+      <p class="text-sm text-muted-foreground text-center max-w-sm mx-auto leading-relaxed">
+        {{ pro.company_name }} a déposé son dossier. Notre équipe vérifie les documents (Kbis, décennale) sous 24 heures ouvrées. Le profil sera visible dès validation.
+      </p>
+    </div>
+
+    <div v-else-if="pro">
       <!-- Verified badge -->
       <div class="mb-8">
         <span
