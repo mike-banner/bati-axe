@@ -1,4 +1,8 @@
+import { fileURLToPath } from 'node:url'
+import path from 'node:path'
 import tailwindcss from '@tailwindcss/vite'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -19,7 +23,16 @@ export default defineNuxtConfig({
   },
 
   nitro: {
-    preset: 'cloudflare-pages'
+    preset: 'cloudflare-pages',
+    alias: {
+      '#supabase/server': path.resolve(__dirname, 'node_modules/@nuxtjs/supabase/dist/runtime/server/services')
+    },
+    cloudflare: {
+      pages: {
+        compatibilityFlags: ['nodejs_compat'],
+        compatibilityDate: '2024-09-23'
+      }
+    }
   },
 
   supabase: {
