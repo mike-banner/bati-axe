@@ -120,14 +120,11 @@ const moderateDocument = async (proId: string, docType: 'kbis' | 'decennale', st
 // ─── Filtered list ────────────────────────────────────────────────────────────
 const filtered = computed(() => {
   if (activeTab.value === 'all') return professionals.value
-  return professionals.value.filter(p =>
-    p.verifications?.some(v => v.status === 'pending') ||
-    (!p.is_verified && (p.verifications?.length || 0) > 0)
-  )
+  return professionals.value.filter(p => !p.is_verified)
 })
 
 const pendingCount = computed(() =>
-  professionals.value.filter(p => p.verifications?.some(v => v.status === 'pending')).length
+  professionals.value.filter(p => !p.is_verified).length
 )
 
 const statusLabel: Record<string, string> = {
