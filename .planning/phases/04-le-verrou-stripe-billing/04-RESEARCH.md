@@ -666,22 +666,25 @@ runtimeConfig: {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Affichage du "délai" sur les cards leads (D-05/D-17)**
    - Ce qu'on sait : `projects` a `budget_range` mais pas de champ délai dédié.
    - Ce qui est flou : Est-ce que le simulateur capte déjà un délai quelque part ? Si non, faut-il une migration schema + mise à jour du simulateur, ou utiliser `description` comme proxy acceptable ?
    - Recommandation : Ajouter `timeline_range` à `projects` (migration légère) ET mettre à jour le simulateur. Valeur affichée sur les cards BASIC sans risque d'identification géographique.
+   - **RESOLVED** — simulateur.vue currently captures no timeline field. Migration adds the column. Phase 4 updates projects.post.ts Zod schema + simulateur.vue to capture and persist timeline_range. Legacy leads will show timeline_range = NULL and cards will display nothing for that field.
 
 2. **Endpoint `claim` pour qu'un Premium "prenne" un lead**
    - Ce qu'on sait : D-08/D-10 mentionnent `leads.status = 'claimed'` mais aucun endpoint n'est spécifié pour le déclencher.
    - Ce qui est flou : Le "claim" d'un lead Premium est-il dans le scope Phase 4 ou Phase 5 ?
    - Recommandation : Inclure un endpoint `PATCH /api/v1/leads/[id]/claim` minimaliste (set `status = 'claimed'`) pour que D-08/D-10 soient fonctionnels. Sans lui, `'claimed'` ne sera jamais settée et la logique "Déjà attribué" ne s'activera pas.
+   - **RESOLVED** — In scope for Phase 4. Implemented in Plan 04-04.
 
 3. **Test local du webhook Stripe**
    - Ce qu'on sait : En local, Stripe CLI (`stripe listen --forward-to http://localhost:3000/api/v1/stripe/webhook`) forward les events.
    - Ce qui est flou : La vérification `constructEventAsync` fonctionne-t-elle en mode `nuxt dev` (Node.js) OU nécessite-t-elle le runtime Cloudflare (`wrangler pages dev`) ?
    - Recommandation : Implémenter le webhook avec `constructEventAsync` dès le départ (compatible Node.js ET Cloudflare). Tester en `nuxt dev` d'abord, puis en staging Cloudflare Pages.
+   - **RESOLVED** — constructEventAsync is compatible with both Node.js (nuxt dev) and Cloudflare V8 edge runtime. Implement with constructEventAsync from the start per RESEARCH.md Pattern 3.
 
 ---
 
