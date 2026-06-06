@@ -45,9 +45,24 @@ const isLoading     = ref(true)
 const actionLoading = ref<string | null>(null)
 const errorMessage  = ref<string | null>(null)
 const professionals = ref<Professional[]>([])
-const activeTab       = ref<'pending' | 'all'>('pending')
+const activeTab       = ref<'pending' | 'all' | 'projects'>('pending')
 const categoryFilter  = ref<string>('')
 const expiryDates     = ref<Record<string, string>>({})
+
+// ─── Projects state ───────────────────────────────────────────────────────────
+interface Project {
+  id: string
+  category: string | null
+  status: string
+  description: string | null
+  budget_range: string | null
+  timeline_range: string | null
+  created_at: string
+}
+
+const projects        = ref<Project[]>([])
+const qualifyLoading  = ref<string | null>(null)
+const qualifyResult   = ref<Record<string, number>>({})
 
 // ─── Access ───────────────────────────────────────────────────────────────────
 const isAdmin = computed(() => (user.value as any)?.app_metadata?.role === 'admin')
@@ -66,7 +81,34 @@ const fetchQueue = async () => {
   }
 }
 
-onMounted(() => { if (isAdmin.value) fetchQueue() })
+const fetchProjects = async () => {
+  isLoading.value = true
+  errorMessage.value = null
+  try {
+    const data = await $fetch('/api/v1/admin/projects')
+    projects.value = (data as any)?.projects || []
+  } catch (err: any) {
+    errorMessage.value = err.data?.statusMessage || err.message
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const qualifyProject = async (projectId: string) => {
+  qualifyLoading.value = projectId
+  errorMessage.value = null
+  try {
+    const data = await $fetch('/api/v1/admin/qualify', { method: 'POST', body: { project_id: projectId } })
+    qualifyResult.value[projectId] = (data as any)?.leads_created ?? 0
+    await fetchProjects()
+  } catch (err: any) {
+    errorMessage.value = err.data?.statusMessage || err.message
+  } finally {
+    qualifyLoading.value = null
+  }
+}
+
+onMounted(() => { if (isAdmin.value) { fetchQueue(); fetchProjects() } })
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
 const viewDocument = async (fileKey: string) => {
@@ -153,7 +195,7 @@ const statusLabel: Record<string, string> = {
           <h1 class="text-2xl font-black tracking-tight text-foreground">Console de modération</h1>
           <p class="text-sm text-muted-foreground mt-1">Validation des Kbis et attestations décennales.</p>
         </div>
-        <div v-if="isAdmin" class="flex items-center gap-2 flex-wrap justify-end">
+        <div v-if="isAdmin" class="flex items-center gap-2">
           <button
             @click="activeTab = 'pending'; categoryFilter = ''"
             class="h-9 px-4 text-sm font-medium rounded-md border transition-colors"
@@ -169,17 +211,27 @@ const statusLabel: Record<string, string> = {
           >
             Tous les pros
           </button>
-          <select
-            v-if="activeTab === 'all'"
-            v-model="categoryFilter"
-            class="h-9 px-3 pr-8 border border-border rounded-md text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 cursor-pointer"
+          <button
+            @click="activeTab = 'projects'; categoryFilter = ''"
+            class="h-9 px-4 text-sm font-medium rounded-md border transition-colors"
+            :class="activeTab === 'projects' ? 'bg-foreground text-background border-foreground' : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted'"
           >
-            <option value="">Toutes catégories</option>
-            <option v-for="cat in availableCategories" :key="cat" :value="cat">
-              {{ CATEGORY_LABELS[cat] ?? cat }}
-            </option>
-          </select>
+            Projets
+          </button>
         </div>
+      </div>
+
+      <!-- Filters bar (all tab only) -->
+      <div v-if="isAdmin && activeTab === 'all'" class="flex items-center justify-end">
+        <select
+          v-model="categoryFilter"
+          class="h-9 px-3 pr-8 border border-border rounded-md text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 cursor-pointer"
+        >
+          <option value="">Toutes catégories</option>
+          <option v-for="cat in availableCategories" :key="cat" :value="cat">
+            {{ CATEGORY_LABELS[cat] ?? cat }}
+          </option>
+        </select>
       </div>
 
       <!-- Access denied -->
@@ -210,13 +262,12 @@ const statusLabel: Record<string, string> = {
           <svg class="w-6 h-6 animate-spin text-muted-foreground" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
         </div>
 
-        <!-- Empty -->
-        <div v-else-if="filtered.length === 0" class="py-16 text-center border border-dashed border-border rounded-lg">
+        <!-- Pro cards (hidden when Projets tab is active) -->
+        <template v-if="activeTab !== 'projects'">
+        <div v-if="filtered.length === 0 && !isLoading" class="py-16 text-center border border-dashed border-border rounded-lg">
           <p class="text-sm text-muted-foreground">Aucun dossier {{ activeTab === 'pending' ? 'en attente' : '' }}.</p>
         </div>
-
-        <!-- Pro cards -->
-        <div v-else class="space-y-4">
+        <div v-else-if="filtered.length > 0" class="space-y-4">
           <div
             v-for="pro in filtered"
             :key="pro.id"
@@ -356,6 +407,60 @@ const statusLabel: Record<string, string> = {
             </div>
           </div>
         </div>
+        </template>
+
+        <!-- Projects tab -->
+        <template v-if="activeTab === 'projects'">
+          <div v-if="projects.length === 0 && !isLoading" class="py-16 text-center border border-dashed border-border rounded-lg">
+            <p class="text-sm text-muted-foreground">Aucun projet trouvé.</p>
+          </div>
+          <div v-else class="space-y-4">
+            <div
+              v-for="project in projects"
+              :key="project.id"
+              class="border border-border rounded-lg overflow-hidden"
+            >
+              <div class="flex items-start justify-between gap-4 px-5 py-4 bg-muted/50">
+                <div class="space-y-1 flex-1 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span v-if="project.category" class="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground">
+                      {{ CATEGORY_LABELS[project.category] ?? project.category }}
+                    </span>
+                    <span
+                      class="text-xs font-medium px-2 py-0.5 rounded-full border"
+                      :class="project.status === 'qualified' ? 'border-emerald-400 text-emerald-700 bg-emerald-50' : 'border-amber-300 text-amber-700 bg-amber-50'"
+                    >
+                      {{ project.status === 'qualified' ? 'Qualifié' : 'En attente' }}
+                    </span>
+                  </div>
+                  <p v-if="project.description" class="text-sm text-foreground line-clamp-2">{{ project.description }}</p>
+                  <div class="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+                    <span v-if="project.budget_range">Budget : {{ project.budget_range }}</span>
+                    <span v-if="project.timeline_range">Délai : {{ project.timeline_range }}</span>
+                    <span>{{ new Date(project.created_at).toLocaleDateString('fr-FR') }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center justify-between px-5 py-3 bg-muted/30 border-t border-border">
+                <span v-if="qualifyResult[project.id] !== undefined" class="text-xs text-emerald-700 font-medium">
+                  <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                  {{ qualifyResult[project.id] }} lead(s) créé(s)
+                </span>
+                <span v-else class="text-xs text-muted-foreground">
+                  {{ project.status === 'qualified' ? 'Déjà qualifié' : 'Non qualifié' }}
+                </span>
+                <button
+                  @click="qualifyProject(project.id)"
+                  :disabled="project.status === 'qualified' || qualifyLoading === project.id"
+                  class="h-8 px-3 bg-sky-600 text-white text-xs font-semibold rounded-md hover:bg-sky-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+                >
+                  <svg v-if="qualifyLoading === project.id" class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                  Qualifier
+                </button>
+              </div>
+            </div>
+          </div>
+        </template>
 
       </div>
     </div>
