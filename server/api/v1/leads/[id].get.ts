@@ -1,5 +1,5 @@
 import { serverSupabaseUser, serverSupabaseServiceRole } from '#supabase/server'
-import { maskLead } from '~/server/utils/maskLead'
+import { maskLead } from '../../../utils/maskLead'
 
 export default defineEventHandler(async (event) => {
   const user = await serverSupabaseUser(event)
