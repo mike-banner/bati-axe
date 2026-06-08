@@ -72,6 +72,10 @@ async function uploadDoc(type: 'kbis' | 'decennale') {
   uploads[type].status = 'uploading'
   uploads[type].error  = ''
   try {
+    const { data: { session } } = await supabase.auth.getSession()
+    const uid = session?.user?.id
+    if (!uid) throw new Error('Utilisateur non connecté.')
+
     const presign = await $fetch<{ status: string; signedUrl: string; fileKey: string }>(
       '/api/v1/pro/documents/presign',
       { method: 'POST', body: { document_type: type, filename: file.name } }
@@ -79,12 +83,15 @@ async function uploadDoc(type: 'kbis' | 'decennale') {
     if (presign.status !== 'SUCCESS') throw new Error('Erreur de signature.')
     const res = await fetch(presign.signedUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file })
     if (!res.ok) throw new Error('Échec du transfert.')
-    const { data: existing } = await supabase.from('verifications').select('id').eq('pro_id', user.value?.id).eq('document_type', type).maybeSingle()
+    
+    const { data: existing, error: selectErr } = await supabase.from('verifications').select('id').eq('pro_id', uid).eq('document_type', type).maybeSingle()
+    if (selectErr && selectErr.code !== 'PGRST116') console.error('Select error:', selectErr)
+
     if (existing) {
-      const { error: updateErr } = await (supabase as any).from('verifications').update({ file_key: presign.fileKey, status: 'pending' }).eq('id', (existing as any).id)
+      const { error: updateErr } = await (supabase as any).from('verifications').update({ file_key: presign.fileKey, status: 'pending' }).eq('id', existing.id)
       if (updateErr) throw new Error(updateErr.message)
     } else {
-      const { error: insertErr } = await (supabase as any).from('verifications').insert({ pro_id: user.value?.id, document_type: type, file_key: presign.fileKey, status: 'pending' })
+      const { error: insertErr } = await (supabase as any).from('verifications').insert({ pro_id: uid, document_type: type, file_key: presign.fileKey, status: 'pending' })
       if (insertErr) throw new Error(insertErr.message)
     }
     uploads[type].status = 'success'
