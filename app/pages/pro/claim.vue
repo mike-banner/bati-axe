@@ -217,8 +217,7 @@ const handleAuth = async () => {
         .maybeSingle() as { data: { id: string; canonical_slug: string } | null }
 
       if (existingPro) {
-        claimSlug.value = existingPro.canonical_slug
-        activeStep.value = 3
+        return navigateTo('/app/dashboard')
       } else {
         activeStep.value = 2
       }
@@ -303,7 +302,7 @@ const uploadDocument = async (type: 'kbis' | 'decennale') => {
   }
 }
 
-const finishOnboarding = () => { activeStep.value = 4 }
+const finishOnboarding = () => navigateTo('/app/dashboard')
 
 const switchMode = (mode: 'register' | 'login') => {
   authMode.value = mode
