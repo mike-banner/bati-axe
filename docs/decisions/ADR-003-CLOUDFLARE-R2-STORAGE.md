@@ -2,7 +2,7 @@
 
 - **Date** : 2026-05-07
 - **Statut** : Accepted
-- **Auteurs** : @mike, @antigravity
+- **Auteurs** : @mike
 
 ## Contexte
 BÂTI-AXE fonde sa promesse de confiance sur la vérification des assurances décennales et Kbis. Avec 7 000 professionnels ciblés initialement, le volume de stockage de PDF lourds (souvent des scans mal optimisés) sera important. 

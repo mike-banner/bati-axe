@@ -2,7 +2,7 @@
 
 - **Date** : 2026-05-07
 - **Statut** : Accepted
-- **Auteurs** : @mike, @antigravity
+- **Auteurs** : @mike
 
 ## Contexte
 Le business model de BÂTI-AXE repose sur la vente d'un accès prioritaire aux leads qualifiés. Les coordonnées du particulier (`phone`, `email`, `full_name`) doivent être masquées aux professionnels non-abonnés (PRO_BASIC) pendant les 24 premières heures, mais visibles instantanément pour les abonnés (PRO_PREMIUM).
