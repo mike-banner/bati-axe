@@ -2,7 +2,7 @@
 
 - **Date** : 2026-05-07
 - **Statut** : Accepted
-- **Auteurs** : @mike, @antigravity
+- **Auteurs** : @mike
 
 ## Contexte
 BÂTI-AXE utilise Supabase en Phase 1 pour sa vélocité (BaaS). Cependant, si la plateforme atteint une "autre dimension" (ex: Serie B, +10M€ ARR, trafic massif, exigences de compliance bancaire/assurances), la question de migrer vers une infrastructure 100% AWS (RDS/Aurora, ECS/EKS) se posera.

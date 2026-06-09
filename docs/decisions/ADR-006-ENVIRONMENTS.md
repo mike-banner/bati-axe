@@ -2,7 +2,7 @@
 
 - **Date** : 2026-05-07
 - **Statut** : Accepted
-- **Auteurs** : @mike, @antigravity
+- **Auteurs** : @mike
 
 ## Contexte
 BÂTI-AXE gère des communications critiques (SMS, Email) et des flux financiers (Stripe). Toute erreur en production peut détruire la confiance des professionnels importés.

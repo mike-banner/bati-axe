@@ -2,7 +2,7 @@
 
 - **Date** : 2026-05-07
 - **Statut** : **SUPERSEDED par ADR-008** (2026-06-02)
-- **Auteurs** : @mike, @antigravity
+- **Auteurs** : @mike
 
 > Cet ADR est conservé pour traçabilité. La décision active est ADR-008 (Nuxt-only mono-app).
 

@@ -2,7 +2,7 @@
 
 - **Date** : YYYY-MM-DD
 - **Statut** : [Proposed | Accepted | Superseded]
-- **Auteurs** : @mike, @antigravity
+- **Auteurs** : @mike
 
 ## Contexte
 [Description du problème, des contraintes et des enjeux métier pour BÂTI-AXE]

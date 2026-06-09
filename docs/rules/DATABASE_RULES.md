@@ -1,7 +1,7 @@
 # DATABASE RULES
 
 > Ces règles s'appliquent à toute migration, table, index, ou fonction PostgreSQL.
-> L'IA vérifie ces règles avant de générer tout SQL.
+> Ces règles doivent être vérifiées avant de générer tout SQL.
 
 ---
 
