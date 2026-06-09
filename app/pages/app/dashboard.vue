@@ -171,10 +171,11 @@ const docsComplete = computed(() => !!kbis.value && !!decennale.value)
         <p class="text-sm text-muted-foreground mt-1">{{ pro.full_name }} · {{ pro.postal_code }}</p>
       </div>
 
-      <!-- ─── Upload banner — documents manquants ─────────────────────────────── -->
-      <div v-if="!docsComplete" class="border border-amber-300 bg-amber-50 rounded-lg p-5 mb-8">
-        <p class="text-sm font-semibold text-amber-900 mb-1">Documents requis</p>
-        <p class="text-xs text-amber-700 mb-5">Envoyez vos justificatifs pour activer votre profil et accéder aux leads.</p>
+      <!-- ─── Documents (toujours visible pour permettre le renouvellement) ───── -->
+      <div class="rounded-lg p-5 mb-8 border" :class="docsComplete ? 'border-border' : 'border-amber-300 bg-amber-50'">
+        <p class="text-sm font-semibold mb-1" :class="docsComplete ? 'text-foreground' : 'text-amber-900'">Documents</p>
+        <p v-if="!docsComplete" class="text-xs text-amber-700 mb-5">Envoyez vos justificatifs pour activer votre profil et accéder aux leads.</p>
+        <p v-else class="text-xs text-muted-foreground mb-4">Renouvelez vos justificatifs si nécessaire (expiration, mise à jour).</p>
 
         <!-- KBIS -->
         <div v-if="!kbis" class="mb-4">
@@ -263,7 +264,11 @@ const docsComplete = computed(() => !!kbis.value && !!decennale.value)
             <svg v-if="step.done" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-foreground">{{ step.label }}</p>
+            <NuxtLink v-if="step.action" :to="step.action.to"
+              class="text-sm font-semibold text-foreground hover:opacity-70 transition-opacity">
+              {{ step.label }}
+            </NuxtLink>
+            <p v-else class="text-sm font-semibold text-foreground">{{ step.label }}</p>
             <p class="text-xs text-muted-foreground mt-0.5">{{ step.desc }}</p>
             <NuxtLink
               v-if="step.action"
