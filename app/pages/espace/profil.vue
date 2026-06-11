@@ -27,7 +27,15 @@ const fetchError = ref(false)
 const { refresh } = await useAsyncData('pro-profile', async () => {
   try {
     const data = await $fetch<{ profile: Record<string, unknown> }>('/api/v1/pro/profile/me')
-    Object.assign(profile, data.profile)
+    Object.assign(profile, {
+      bio: data.profile.bio || '',
+      category: data.profile.category || '',
+      zone: data.profile.zone || '',
+      logo_url: data.profile.logo_url || '',
+      canonical_slug: data.profile.canonical_slug || '',
+      dept: data.profile.dept || '',
+      company_name: data.profile.company_name || '',
+    })
     fetchError.value = false
   } catch {
     fetchError.value = true
@@ -203,6 +211,10 @@ async function saveProfile() {
           </p>
           <p v-if="saveError" class="text-xs text-destructive">{{ saveError }}</p>
           <div class="ml-auto">
+            <NuxtLink to="/app/dashboard"
+              class="inline-flex items-center justify-center gap-2 h-10 px-6 border border-border text-foreground text-sm font-semibold rounded-md hover:bg-muted transition-colors mr-3">
+              Annuler
+            </NuxtLink>
             <button type="submit" :disabled="saving"
               class="inline-flex items-center justify-center gap-2 h-10 px-6 bg-foreground text-background text-sm font-semibold rounded-md hover:opacity-80 transition-opacity disabled:opacity-50">
               <span v-if="!saving">Enregistrer les modifications</span>
