@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 
+definePageMeta({ layout: 'dynamic' })
+
 useHead({ title: 'Modération — BÂTI-AXE Admin' })
 
 const supabase = useSupabaseClient()
@@ -243,7 +245,7 @@ const statusLabel: Record<string, string> = {
 </script>
 
 <template>
-  <div class="min-h-[calc(100vh-3.5rem)] bg-background">
+  <div class="min-h-[calc(100vh-3.5rem)]">
     <div class="max-w-6xl mx-auto px-6 py-10 space-y-8">
 
       <!-- Header -->

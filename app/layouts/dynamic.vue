@@ -3,8 +3,8 @@ const user = useSupabaseUser()
 const supabase = useSupabaseClient()
 
 async function signOut() {
-  await supabase.auth.signOut()
   await navigateTo('/')
+  await supabase.auth.signOut()
 }
 
 const userInitial = computed(() => user.value?.email?.charAt(0).toUpperCase() ?? '')

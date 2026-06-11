@@ -5,11 +5,11 @@ import { serverSupabaseUser, serverSupabaseClient } from '#supabase/server'
 const VALID_CATEGORIES = ['maconnerie', 'toiture', 'electricite', 'plomberie', 'peinture', 'isolation'] as const
 
 const patchSchema = z.object({
-  bio: z.string().max(500, 'La présentation ne peut dépasser 500 caractères.').optional(),
-  zone: z.string().max(200, "La zone d'intervention ne peut dépasser 200 caractères.").optional(),
-  category: z.enum(VALID_CATEGORIES, { message: 'Catégorie invalide.' }).optional(),
-  logo_url: z.string().url('URL de logo invalide.').optional(),
-}).strict() // D-15: canonical_slug, short_id, subscription_status etc. are rejected
+  bio: z.string().max(500, 'La présentation ne peut dépasser 500 caractères.').nullable().optional(),
+  zone: z.string().max(200, "La zone d'intervention ne peut dépasser 200 caractères.").nullable().optional(),
+  category: z.enum(VALID_CATEGORIES, { message: 'Catégorie invalide.' }).nullable().optional(),
+  logo_url: z.string().url('URL de logo invalide.').nullable().optional(),
+}).strict()
 
 export default defineEventHandler(async (event) => {
   const supabase = await serverSupabaseClient(event) as any
@@ -17,6 +17,10 @@ export default defineEventHandler(async (event) => {
   if (authError || !user) throw createError({ statusCode: 401, statusMessage: 'Non autorisé.' })
 
   const body = await readBody(event)
+  if (body.bio === '') body.bio = null
+  if (body.zone === '') body.zone = null
+  if (body.category === '') body.category = null
+  
   const parsed = patchSchema.safeParse(body)
   if (!parsed.success) throw createError({ statusCode: 400, statusMessage: parsed.error.message })
 
