@@ -1,9 +1,12 @@
-import { Resend } from 'resend'
 import { useRuntimeConfig } from '#imports'
 
+// Envoi d'e-mails via l'API REST Resend appelée en fetch direct.
+// On évite volontairement le SDK `resend` : il importe `@react-email/render`,
+// non résolvable par le runtime Cloudflare Workers (build Nitro échoue avec
+// « externals are not allowed »). Un simple fetch suffit pour du HTML brut.
 export async function sendEmail(options: { to: string; subject: string; html: string }) {
-  // DEV Environment: Mock the email to avoid consuming quotas or failing without keys
-  if (process.dev) {
+  // DEV : on mocke l'e-mail (pas de quota consommé, pas de clé requise).
+  if (import.meta.dev) {
     console.log('\n=============================================')
     console.log(`[MOCK EMAIL] To: ${options.to}`)
     console.log(`[MOCK EMAIL] Subject: ${options.subject}`)
@@ -13,26 +16,38 @@ export async function sendEmail(options: { to: string; subject: string; html: st
     return { success: true, mocked: true }
   }
 
-  // PROD Environment: Send real email via Resend
+  // PROD : envoi réel via Resend.
   const config = useRuntimeConfig()
   const apiKey = config.resendApiKey || process.env.RESEND_API_KEY
-  
+
   if (!apiKey) {
     console.warn('⚠️ Missing RESEND_API_KEY. Falling back to console.log')
     console.log(`[EMAIL FALLBACK] To: ${options.to} | Subj: ${options.subject}`)
     return { success: false, error: 'Missing API Key' }
   }
 
-  const resend = new Resend(apiKey)
-
   try {
-    const data = await resend.emails.send({
-      from: 'BÂTI-AXE <noreply@bati-axe.fr>', // Must be a verified domain on Resend
-      to: [options.to],
-      subject: options.subject,
-      html: options.html
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'BÂTI-AXE <noreply@bati-axe.fr>', // Domaine vérifié côté Resend
+        to: [options.to],
+        subject: options.subject,
+        html: options.html
+      })
     })
-    return { success: true, data }
+
+    if (!res.ok) {
+      const detail = await res.text()
+      console.error('Error sending email via Resend:', res.status, detail)
+      return { success: false, error: `Resend ${res.status}` }
+    }
+
+    return { success: true, data: await res.json() }
   } catch (error) {
     console.error('Error sending email via Resend:', error)
     return { success: false, error }
