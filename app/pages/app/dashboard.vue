@@ -9,6 +9,7 @@ interface Pro {
 }
 interface Verif {
   document_type: string; status: string; expiry_date: string | null; created_at: string
+  file_key?: string; reviewed_at?: string | null
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -43,7 +44,7 @@ async function loadProData() {
         .select('id, company_name, full_name, phone, postal_code, canonical_slug, short_id, is_verified, is_claimed, decennal_status, created_at, categories, subscription_status, bio, logo_url')
         .eq('id', uid).maybeSingle(),
       supabase.from('verifications')
-        .select('document_type, status, expiry_date, created_at')
+        .select('document_type, status, expiry_date, created_at, file_key, reviewed_at')
         .eq('pro_id', uid).order('created_at', { ascending: false })
     ])
     if (proErr && proErr.code !== 'PGRST116') console.error('[dashboard] pro fetch:', proErr.message)
@@ -67,6 +68,17 @@ watch(user, () => loadProData(), { immediate: true })
 
 const kbis      = computed(() => verifs.value?.find(v => v.document_type === 'kbis'))
 const decennale = computed(() => verifs.value?.find(v => v.document_type === 'decennale'))
+
+// Nom de fichier lisible (dernier segment de la clé R2) + dates
+const docFileName = (key?: string) => key ? key.split('/').pop() : ''
+const docFmtDate = (d?: string | null) => d ? new Date(d).toLocaleDateString('fr-FR') : ''
+const docPeriod = (doc?: Verif) => {
+  if (!doc) return ''
+  if (doc.status === 'approved' && doc.expiry_date) {
+    return `En vigueur du ${docFmtDate(doc.reviewed_at || doc.created_at)} au ${docFmtDate(doc.expiry_date)}`
+  }
+  return `Envoyé le ${docFmtDate(doc.created_at)}`
+}
 
 const docStatus = (doc: any) => {
   if (!doc) return { label: 'Non envoyé', cls: 'text-muted-foreground border-border' }
@@ -235,6 +247,10 @@ const docsComplete = computed(() => !!kbis.value && !!decennale.value)
               {{ uploads.kbis.status === 'uploading' ? 'Envoi...' : 'Modifier' }}
             </span>
           </label>
+          <p class="w-full text-[11px] text-muted-foreground mt-1 leading-snug">
+            <span v-if="docFileName(kbis.file_key)" class="font-mono">{{ docFileName(kbis.file_key) }}</span>
+            <span v-if="docPeriod(kbis)"> · {{ docPeriod(kbis) }}</span>
+          </p>
         </div>
 
         <!-- Décennale -->
@@ -273,6 +289,10 @@ const docsComplete = computed(() => !!kbis.value && !!decennale.value)
               {{ uploads.decennale.status === 'uploading' ? 'Envoi...' : 'Modifier' }}
             </span>
           </label>
+          <p class="w-full text-[11px] text-muted-foreground mt-1 leading-snug">
+            <span v-if="docFileName(decennale.file_key)" class="font-mono">{{ docFileName(decennale.file_key) }}</span>
+            <span v-if="docPeriod(decennale)"> · {{ docPeriod(decennale) }}</span>
+          </p>
         </div>
 
         <!-- Responsabilité -->

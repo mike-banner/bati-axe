@@ -23,6 +23,7 @@ const logoError = ref('')
 const logoUploading = ref(false)
 const logoProgress = ref(0)
 const logoStage = ref<'compress' | 'upload'>('compress')
+const logoName = ref('')
 const fetchError = ref(false)
 
 const { refresh } = await useAsyncData('pro-profile-page', async () => {
@@ -125,6 +126,7 @@ async function handleLogoUpload(event: Event) {
       { method: 'POST', body: { content_type: type, filename: name } }
     )
     await putWithProgress(presign.signedUrl, blob, type)
+    logoName.value = file.name
     // publicUrl est vide tant que le bucket R2 n'a pas d'URL publique configurée.
     // Dans ce cas le fichier est bien stocké, mais on n'écrase pas logo_url (sinon 400 / logo effacé).
     if (presign.publicUrl) {
@@ -215,6 +217,12 @@ async function saveProfile() {
               <input type="file" accept="image/*" class="sr-only" @change="handleLogoUpload" :disabled="logoUploading" />
             </label>
             <p class="text-xs text-muted-foreground mt-2">5 Mo max. JPG, PNG, WebP, GIF, SVG. L'image est compressée automatiquement.</p>
+
+            <!-- Fichier actif -->
+            <p v-if="logoName && !logoUploading" class="text-[11px] text-muted-foreground mt-1 inline-flex items-center gap-1.5">
+              <svg class="w-3 h-3 text-foreground" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+              <span class="font-mono">{{ logoName }}</span>
+            </p>
 
             <!-- Progression -->
             <UploadProgress v-if="logoUploading" :stage="logoStage" :progress="logoProgress" class="mt-3" />
