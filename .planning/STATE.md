@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: in_progress
 stopped_at: null
-last_updated: "2026-06-13T20:41:00.000Z"
-last_activity: 2026-06-13
+last_updated: "2026-06-14T22:30:00.000Z"
+last_activity: 2026-06-14
 progress:
   total_phases: 8
-  completed_phases: 2
+  completed_phases: 6
   total_plans: 16
   completed_plans: 15
-  percent: 31
+  percent: 75
 ---
 
 # Project State
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-02)
 
 **Core value**: Mettre en relation exclusive des particuliers porteurs de projets avec des professionnels certifiés du bâtiment.
-**Current focus**: Phase 4: Le Verrou & Stripe Billing
+**Current focus**: Phase 5: SMS + Acquisition + Messagerie (à démarrer)
 
 ## Current Position
 
 Phase: 05 (SMS + Acquisition + Messagerie) — NOT STARTED
 Plan: 0 of TBD
 Status: Ready to plan
-Last activity: 2026-06-11
-Progress: [████████░░] 80%
+Last activity: 2026-06-14
+Progress: [███████▌░░] 75% (6/8 phases — 1, 2, 3, 4, 4.5, 4.6 livrées)
 
 ## Performance Metrics
 
