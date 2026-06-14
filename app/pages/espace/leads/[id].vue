@@ -1,12 +1,8 @@
 <script setup lang="ts">
 import { computed, watchEffect } from 'vue'
 
-const user  = useSupabaseUser()
+useRequireAuth()
 const route = useRoute()
-
-watchEffect(() => {
-  if (user.value === null) navigateTo('/pro/claim')
-})
 
 const CATEGORY_LABELS: Record<string, string> = {
   maconnerie:   'Maçonnerie & Gros Œuvre',
@@ -25,9 +21,12 @@ const TIMELINE_LABELS: Record<string, string> = {
   flexible:   'Flexible',
 }
 
+// useRequestFetch transmet le cookie d'auth au SSR (sinon 401 au rechargement).
+const requestFetch = useRequestFetch()
+
 const { data: lead, pending, error } = await useAsyncData(
   `lead-detail-${route.params.id}`,
-  () => $fetch<{ lead: any }>(`/api/v1/leads/${route.params.id}`).then(r => r.lead)
+  () => requestFetch<{ lead: any }>(`/api/v1/leads/${route.params.id}`).then(r => r.lead)
 )
 
 const isUnlocked = computed(() => lead.value?.status === 'unlocked')
@@ -35,7 +34,7 @@ const isUnlocked = computed(() => lead.value?.status === 'unlocked')
 // Only fetch messages if the lead is unlocked
 const { data: messagesData, refresh: refreshMessages } = await useAsyncData(
   `lead-messages-${route.params.id}`,
-  () => $fetch<{ messages: any[] }>(`/api/v1/messages?lead_id=${route.params.id}`),
+  () => requestFetch<{ messages: any[] }>(`/api/v1/messages?lead_id=${route.params.id}`),
   { watch: [isUnlocked], immediate: false }
 )
 

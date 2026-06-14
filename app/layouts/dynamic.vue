@@ -2,6 +2,9 @@
 const user = useSupabaseUser()
 const supabase = useSupabaseClient()
 
+// Auto-logout après 30 min inactivité
+useIdleLogout(30)
+
 async function signOut() {
   await navigateTo('/')
   await supabase.auth.signOut()
@@ -22,6 +25,11 @@ function handleScroll() {
   isHeaderVisible.value = current < lastScrollPosition
   lastScrollPosition = current
 }
+const { data: headerPro } = await useAsyncData('header-pro', async () => {
+  if (!user.value?.id) return null
+  const { data } = await supabase.from('professionals').select('company_name').eq('id', user.value.id).maybeSingle()
+  return data
+}, { server: false })
 
 onMounted(() => window.addEventListener('scroll', handleScroll))
 onUnmounted(() => window.removeEventListener('scroll', handleScroll))
@@ -46,8 +54,10 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
           BÂTI-AXE
           <span v-if="isAdminRoute" class="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-sm bg-red-500/10 text-red-500 border border-red-500/20">Admin</span>
           <span v-else-if="isProRoute" class="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-sm bg-foreground/10 text-foreground border border-foreground/20">Pro</span>
+          <ClientOnly><span v-if="headerPro?.company_name" class="ml-2 text-sm font-medium text-foreground truncate max-w-[150px] sm:max-w-xs">{{ headerPro.company_name }}</span></ClientOnly>
         </NuxtLink>
         <nav class="flex items-center gap-2">
+          <ClientOnly>
           <template v-if="user">
             <button
               class="flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors"
@@ -64,6 +74,7 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
               Se connecter
             </NuxtLink>
           </template>
+          </ClientOnly>
         </nav>
       </div>
     </header>
@@ -76,6 +87,18 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
     <!-- Navigation basse flottante (mobile) -> Uniquement pour les Pros -->
     <div v-if="!isAdminRoute" class="fixed bottom-5 left-1/2 -translate-x-1/2 w-[92%] max-w-sm z-50">
       <nav class="flex items-center justify-around px-6 py-3.5 bg-foreground/95 backdrop-blur-xl rounded-full shadow-2xl border border-foreground/10 text-background/50">
+
+        <NuxtLink
+          to="/app/dashboard"
+          class="flex flex-col items-center gap-1 transition-colors duration-200 hover:text-background cursor-pointer"
+          active-class="text-background"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          <span class="text-[10px] font-medium">Accueil</span>
+        </NuxtLink>
 
         <NuxtLink
           to="/espace/profil"

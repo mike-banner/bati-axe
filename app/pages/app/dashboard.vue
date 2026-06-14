@@ -5,10 +5,11 @@ interface Pro {
   id: string; company_name: string; full_name: string; phone: string
   postal_code: string; canonical_slug: string; short_id: string
   is_verified: boolean; is_claimed: boolean; decennal_status: string; created_at: string
-  category: string; subscription_status: string; bio?: string; logo_url?: string
+  categories: string[]; subscription_status: string; bio?: string; logo_url?: string
 }
 interface Verif {
   document_type: string; status: string; expiry_date: string | null; created_at: string
+  file_key?: string; reviewed_at?: string | null
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -17,33 +18,50 @@ const CATEGORY_LABELS: Record<string, string> = {
 }
 
 const supabase = useSupabaseClient()
-const user     = useSupabaseUser()
+const { user } = useRequireAuth()
 useHead({ title: 'Mon profil — BÂTI-AXE' })
-
-watchEffect(() => { if (user.value === null) navigateTo('/pro/claim') })
 
 const pro    = ref<Pro | null>(null)
 const verifs = ref<Verif[]>([])
 const loading = ref(true)
+const router = useRouter()
 
 async function loadProData() {
   loading.value = true
-  const { data: { session } } = await supabase.auth.getSession()
-  const uid = session?.user?.id
-  if (!uid) return
-  const [{ data: proData, error: proErr }, { data: verifData, error: verifErr }] = await Promise.all([
-    supabase.from('professionals')
-      .select('id, company_name, full_name, phone, postal_code, canonical_slug, short_id, is_verified, is_claimed, decennal_status, created_at, category, subscription_status, bio, logo_url')
-      .eq('id', uid).maybeSingle(),
-    supabase.from('verifications')
-      .select('document_type, status, expiry_date, created_at')
-      .eq('pro_id', uid).order('created_at', { ascending: false })
-  ])
-  if (proErr)   console.error('[dashboard] pro fetch:', proErr.message)
-  if (verifErr) console.error('[dashboard] verif fetch:', verifErr.message)
-  pro.value    = proData as Pro | null
-  verifs.value = (verifData || []) as Verif[]
-  loading.value = false
+  try {
+    // Le token JWT doit être attaché au client Supabase AVANT la requête : sinon
+    // elle part en `anon` et la policy RLS publique (is_verified=true) masque la
+    // ligne d'un pro non encore vérifié → faux « Profil introuvable ».
+    // getSession() force la restauration de la session et donc l'attache du token.
+    const { data: { session } } = await supabase.auth.getSession()
+    const uid = session?.user?.id
+    if (!uid) {
+      loading.value = false
+      return
+    }
+    const [{ data: proData, error: proErr }, { data: verifData, error: verifErr }] = await Promise.all([
+      supabase.from('professionals')
+        .select('id, company_name, full_name, phone, postal_code, canonical_slug, short_id, is_verified, is_claimed, decennal_status, created_at, categories, subscription_status, bio, logo_url')
+        .eq('id', uid).maybeSingle(),
+      supabase.from('verifications')
+        .select('document_type, status, expiry_date, created_at, file_key, reviewed_at')
+        .eq('pro_id', uid).order('created_at', { ascending: false })
+    ])
+    if (proErr && proErr.code !== 'PGRST116') console.error('[dashboard] pro fetch:', proErr.message)
+    if (verifErr) console.error('[dashboard] verif fetch:', verifErr.message)
+    
+    if (!proData) {
+      console.warn('[dashboard] Profile missing, proData is null. Showing fallback UI.')
+      return
+    }
+
+    pro.value    = proData as Pro | null
+    verifs.value = (verifData || []) as Verif[]
+  } catch (e) {
+    console.error('Error loading pro data', e)
+  } finally {
+    loading.value = false
+  }
 }
 
 watch(user, () => loadProData(), { immediate: true })
@@ -51,9 +69,34 @@ watch(user, () => loadProData(), { immediate: true })
 const kbis      = computed(() => verifs.value?.find(v => v.document_type === 'kbis'))
 const decennale = computed(() => verifs.value?.find(v => v.document_type === 'decennale'))
 
+// Nom de fichier lisible (dernier segment de la clé R2) + dates
+const docFileName = (key?: string) => key ? key.split('/').pop() : ''
+const docFmtDate = (d?: string | null) => d ? new Date(d).toLocaleDateString('fr-FR') : ''
+const docPeriod = (doc?: Verif) => {
+  if (!doc) return ''
+  if (doc.status === 'approved' && doc.expiry_date) {
+    return `En vigueur du ${docFmtDate(doc.reviewed_at || doc.created_at)} au ${docFmtDate(doc.expiry_date)}`
+  }
+  return `Envoyé le ${docFmtDate(doc.created_at)}`
+}
+
 const docStatus = (doc: any) => {
   if (!doc) return { label: 'Non envoyé', cls: 'text-muted-foreground border-border' }
-  if (doc.status === 'approved') return { label: 'Validé ✓', cls: 'text-foreground border-foreground/30' }
+  
+  if (doc.status === 'approved') {
+    if (doc.expiry_date) {
+      const daysLeft = Math.ceil((new Date(doc.expiry_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
+      if (daysLeft < 0) {
+        return { label: 'Expiré ⚠️', cls: 'text-red-700 border-red-200 bg-red-50' }
+      }
+      const warningDays = doc.document_type === 'decennale' ? 30 : 14
+      if (daysLeft <= warningDays) {
+        return { label: 'Expire bientôt', cls: 'text-amber-700 border-amber-300 bg-amber-50' }
+      }
+    }
+    return { label: 'Validé ✓', cls: 'text-foreground border-foreground/30' }
+  }
+  
   if (doc.status === 'rejected') return { label: 'Rejeté', cls: 'text-red-700 border-red-200 bg-red-50' }
   return { label: 'En attente', cls: 'text-amber-700 border-amber-300 bg-amber-50' }
 }
@@ -87,16 +130,11 @@ async function uploadDoc(type: 'kbis' | 'decennale') {
     const res = await fetch(presign.signedUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file })
     if (!res.ok) throw new Error('Échec du transfert.')
     
-    const { data: existing, error: selectErr } = await (supabase as any).from('verifications').select('id').eq('pro_id', uid).eq('document_type', type).maybeSingle()
-    if (selectErr && selectErr.code !== 'PGRST116') console.error('Select error:', selectErr)
-
-    if (existing) {
-      const { error: updateErr } = await (supabase as any).from('verifications').update({ file_key: presign.fileKey, status: 'pending' }).eq('id', existing.id)
-      if (updateErr) throw new Error(updateErr.message)
-    } else {
-      const { error: insertErr } = await (supabase as any).from('verifications').insert({ pro_id: uid, document_type: type, file_key: presign.fileKey, status: 'pending' })
-      if (insertErr) throw new Error(insertErr.message)
-    }
+    // Historisation : chaque envoi crée une nouvelle ligne — on ne perd jamais
+    // l'ancien justificatif (preuve décennale). L'admin valide la plus récente,
+    // le dashboard affiche la plus récente (tri created_at desc).
+    const { error: insertErr } = await (supabase as any).from('verifications').insert({ pro_id: uid, document_type: type, file_key: presign.fileKey, status: 'pending' })
+    if (insertErr) throw new Error(insertErr.message)
     uploads[type].status = 'success'
     await loadProData() // refresh badges
   } catch (err: any) {
@@ -140,16 +178,7 @@ const docsComplete = computed(() => !!kbis.value && !!decennale.value)
       <svg class="w-8 h-8 animate-spin text-muted-foreground" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
     </div>
 
-    <!-- Not registered yet -->
-    <div v-else-if="user && !pro" class="py-8">
-      <h1 class="text-3xl font-semibold tracking-tight text-foreground mb-3">Mon espace</h1>
-      <p class="text-sm text-muted-foreground mb-8">Votre profil artisan n'est pas encore créé.</p>
-      <NuxtLink to="/pro/claim" class="inline-flex items-center gap-2 h-11 px-6 bg-foreground text-background text-sm font-semibold rounded-md hover:opacity-80 transition-opacity">
-        Créer mon profil artisan
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </NuxtLink>
-    </div>
-
+    <!-- Main Dashboard -->
     <template v-else-if="pro">
 
       <!-- Header -->
@@ -163,8 +192,8 @@ const docsComplete = computed(() => !!kbis.value && !!decennale.value)
             <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             {{ pro.is_verified ? 'Vérifié BÂTI-AXE' : 'Vérification en cours' }}
           </span>
-          <span v-if="pro.category" class="inline-flex items-center text-xs font-medium px-3 py-1.5 border border-border rounded-full text-muted-foreground">
-            {{ CATEGORY_LABELS[pro.category] || pro.category }}
+          <span v-if="pro.categories && pro.categories.length > 0" class="inline-flex items-center text-xs font-medium px-3 py-1.5 border border-border rounded-full text-muted-foreground gap-1">
+            <span v-for="cat in pro.categories" :key="cat">{{ CATEGORY_LABELS[cat] || cat }}</span>
           </span>
         </div>
         <h1 class="text-3xl font-semibold tracking-tight text-foreground" style="text-wrap: balance">{{ pro.company_name }}</h1>
@@ -172,10 +201,15 @@ const docsComplete = computed(() => !!kbis.value && !!decennale.value)
       </div>
 
       <!-- ─── Documents (toujours visible pour permettre le renouvellement) ───── -->
-      <div class="rounded-lg p-5 mb-8 border" :class="docsComplete ? 'border-border' : 'border-amber-300 bg-amber-50'">
-        <p class="text-sm font-semibold mb-1" :class="docsComplete ? 'text-foreground' : 'text-amber-900'">Documents</p>
-        <p v-if="!docsComplete" class="text-xs text-amber-700 mb-5">Envoyez vos justificatifs pour activer votre profil et accéder aux leads.</p>
-        <p v-else class="text-xs text-muted-foreground mb-4">Renouvelez vos justificatifs si nécessaire (expiration, mise à jour).</p>
+      <div class="rounded-lg p-5 mb-8 border" :class="docsComplete ? 'border-border' : 'border-red-300 bg-red-50'">
+        <div class="flex items-start gap-2 mb-3">
+          <svg v-if="!docsComplete" class="w-4 h-4 text-red-700 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+          <div>
+            <p class="text-sm font-semibold" :class="docsComplete ? 'text-foreground' : 'text-red-900'">Documents requis</p>
+            <p v-if="!docsComplete" class="text-xs text-red-700 mt-0.5">Envoyez vos justificatifs pour valider votre profil et accéder aux leads (même gratuits).</p>
+            <p v-else class="text-xs text-muted-foreground mt-0.5">Renouvelez-les en cas d'expiration ou de mise à jour.</p>
+          </div>
+        </div>
 
         <!-- KBIS -->
         <div v-if="!kbis" class="mb-4">
@@ -213,6 +247,10 @@ const docsComplete = computed(() => !!kbis.value && !!decennale.value)
               {{ uploads.kbis.status === 'uploading' ? 'Envoi...' : 'Modifier' }}
             </span>
           </label>
+          <p class="w-full text-[11px] text-muted-foreground mt-1 leading-snug">
+            <span v-if="docFileName(kbis.file_key)" class="font-mono">{{ docFileName(kbis.file_key) }}</span>
+            <span v-if="docPeriod(kbis)"> · {{ docPeriod(kbis) }}</span>
+          </p>
         </div>
 
         <!-- Décennale -->
@@ -251,6 +289,17 @@ const docsComplete = computed(() => !!kbis.value && !!decennale.value)
               {{ uploads.decennale.status === 'uploading' ? 'Envoi...' : 'Modifier' }}
             </span>
           </label>
+          <p class="w-full text-[11px] text-muted-foreground mt-1 leading-snug">
+            <span v-if="docFileName(decennale.file_key)" class="font-mono">{{ docFileName(decennale.file_key) }}</span>
+            <span v-if="docPeriod(decennale)"> · {{ docPeriod(decennale) }}</span>
+          </p>
+        </div>
+
+        <!-- Responsabilité -->
+        <div class="mt-4 pt-4 border-t border-border/50">
+          <p class="text-xs text-muted-foreground leading-relaxed">
+            <span class="font-semibold">⚠️ Responsabilité :</span> Vous garantissez l'authenticité et la validité des documents envoyés. Toute fausse déclaration ou document falsifié peut entraîner la fermeture de votre compte et des poursuites légales. BÂTI-AXE décline toute responsabilité en cas de fraude documentaire.
+          </p>
         </div>
       </div>
 
@@ -285,5 +334,20 @@ const docsComplete = computed(() => !!kbis.value && !!decennale.value)
 
 
     </template>
+
+    <!-- Fallback if pro is null and redirect fails -->
+    <div v-else class="py-16 text-center space-y-4">
+      <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      </div>
+      <h2 class="text-xl font-semibold text-foreground">Profil professionnel introuvable</h2>
+      <p class="text-sm text-muted-foreground max-w-md mx-auto">
+        Votre compte existe, mais les données de votre entreprise n'ont pas pu être chargées.
+      </p>
+      <NuxtLink to="/pro/claim" class="mt-6 inline-flex items-center justify-center h-10 px-6 rounded-md bg-foreground text-background font-medium text-sm hover:opacity-90 transition-opacity">
+        Créer ou vérifier mon profil
+      </NuxtLink>
+    </div>
+
   </div>
 </template>

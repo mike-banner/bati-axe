@@ -1,14 +1,10 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'dynamic' })
-import { ref, computed, watchEffect, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 useHead({ title: 'Mes leads — BÂTI-AXE' })
 
-const user = useSupabaseUser()
-
-watchEffect(() => {
-  if (user.value === null) navigateTo('/pro/claim')
-})
+useRequireAuth()
 
 const CATEGORY_LABELS: Record<string, string> = {
   maconnerie:   'Maçonnerie & Gros Œuvre',
@@ -19,16 +15,20 @@ const CATEGORY_LABELS: Record<string, string> = {
   isolation:    'Isolation & Cloisons',
 }
 
+// useRequestFetch transmet le cookie d'auth au SSR (sinon $fetch interne part
+// sans cookie -> 401 -> "Impossible de charger les leads" au rechargement).
+const requestFetch = useRequestFetch()
+
 const { data: leadsData, pending, error, refresh } = await useAsyncData('pro-leads', () =>
-  $fetch<{ leads: any[], isPremium: boolean }>('/api/v1/leads')
+  requestFetch<{ leads: any[], isPremium: boolean }>('/api/v1/leads')
 )
 
-const { data: profile } = await useAsyncData('pro-profile', () =>
-  $fetch<{ profile: any }>('/api/v1/pro/profile/me').then(r => r.profile).catch(() => null)
+const { data: profile } = await useAsyncData('pro-profile-leads', () =>
+  requestFetch<{ profile: any }>('/api/v1/pro/profile/me').then(r => r.profile).catch(() => null)
 )
 
 const { data: marketData } = await useAsyncData('market-local', () =>
-  $fetch<{ data: any }>('/api/v1/market-local').then(r => r.data).catch(() => null)
+  requestFetch<{ data: any }>('/api/v1/market-local').then(r => r.data).catch(() => null)
 )
 
 const leads = computed(() => leadsData.value?.leads || [])
@@ -42,6 +42,9 @@ const showPaywallBanner = computed(() => !isPremium.value && freeLeadsUsed.value
 // ─── Filtre + pagination ───────────────────────────────────────────────────────
 const PAGE_SIZE = 5
 const categoryFilter = ref('')
+// Tri par défaut : 'urgent' = les plus anciens (donc les plus critiques) en haut,
+// pour qu'aucun lead ne se perde en bas de liste. Le pro peut basculer.
+const sortMode = ref<'urgent' | 'recent'>('urgent')
 const currentPage = ref(1)
 
 const availableCategories = computed(() => {
@@ -54,14 +57,21 @@ const filteredLeads = computed(() => {
   return leads.value.filter((l: any) => l.category === categoryFilter.value)
 })
 
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredLeads.value.length / PAGE_SIZE)))
+const sortedLeads = computed(() => {
+  const ts = (l: any) => new Date(l.created_at ?? 0).getTime()
+  // 'urgent' → ancien d'abord (asc) ; 'recent' → récent d'abord (desc)
+  const dir = sortMode.value === 'urgent' ? 1 : -1
+  return [...filteredLeads.value].sort((a, b) => (ts(a) - ts(b)) * dir)
+})
+
+const totalPages = computed(() => Math.max(1, Math.ceil(sortedLeads.value.length / PAGE_SIZE)))
 
 const paginatedLeads = computed(() => {
   const start = (currentPage.value - 1) * PAGE_SIZE
-  return filteredLeads.value.slice(start, start + PAGE_SIZE)
+  return sortedLeads.value.slice(start, start + PAGE_SIZE)
 })
 
-watch(categoryFilter, () => { currentPage.value = 1 })
+watch([categoryFilter, sortMode], () => { currentPage.value = 1 })
 
 const route = useRoute()
 const showSuccessBanner = ref(route.query.upgrade === 'success')
@@ -112,6 +122,32 @@ async function copyToClipboard(text: string) {
 
 <template>
   <div class="max-w-2xl mx-auto px-6 py-16">
+
+    <!-- Blocker: profil non validé -->
+    <div v-if="profile && !profile.is_verified" class="flex flex-col gap-4 p-6 border border-red-300 bg-red-50 rounded-lg mb-8">
+      <div class="flex items-start gap-3">
+        <svg class="w-5 h-5 text-red-700 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+        </svg>
+        <div>
+          <p class="text-sm font-semibold text-red-900">Accès aux leads bloqué</p>
+          <p class="text-xs text-red-700 mt-1">Votre profil doit être validé pour accéder aux leads. Cela nécessite :</p>
+          <ul class="text-xs text-red-700 list-disc list-inside mt-2 space-y-1">
+            <li>Avoir envoyé vos documents (KBIS + Décennale)</li>
+            <li>Que nos équipes aient vérifié vos documents (sous 24h ouvrées)</li>
+          </ul>
+        </div>
+      </div>
+      <NuxtLink
+        to="/app/dashboard"
+        class="inline-flex items-center justify-center gap-2 h-10 px-6 bg-red-700 text-white text-sm font-semibold rounded-md hover:bg-red-800 transition-colors self-start"
+      >
+        Retour au dashboard pour envoyer les documents
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </NuxtLink>
+    </div>
 
     <!-- Success banner (?upgrade=success) -->
     <div v-if="showSuccessBanner" class="flex items-start gap-3 p-4 border border-foreground/30 rounded-lg mb-8">
@@ -232,15 +268,26 @@ async function copyToClipboard(text: string) {
           {{ filteredLeads.length }} lead{{ filteredLeads.length !== 1 ? 's' : '' }}
           <template v-if="categoryFilter"> · {{ CATEGORY_LABELS[categoryFilter] ?? categoryFilter }}</template>
         </span>
-        <select
-          v-model="categoryFilter"
-          class="h-9 px-3 pr-8 border border-border rounded-md text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 cursor-pointer"
-        >
-          <option value="">Toutes catégories</option>
-          <option v-for="cat in availableCategories" :key="cat" :value="cat">
-            {{ CATEGORY_LABELS[cat] ?? cat }}
-          </option>
-        </select>
+        <div class="flex items-center gap-2">
+          <select
+            v-model="sortMode"
+            aria-label="Trier les leads"
+            class="h-9 px-3 pr-8 border border-border rounded-md text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 cursor-pointer"
+          >
+            <option value="urgent">Plus urgents</option>
+            <option value="recent">Plus récents</option>
+          </select>
+          <select
+            v-model="categoryFilter"
+            aria-label="Filtrer par catégorie"
+            class="h-9 px-3 pr-8 border border-border rounded-md text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 cursor-pointer"
+          >
+            <option value="">Toutes catégories</option>
+            <option v-for="cat in availableCategories" :key="cat" :value="cat">
+              {{ CATEGORY_LABELS[cat] ?? cat }}
+            </option>
+          </select>
+        </div>
       </div>
 
       <!-- Empty filtered state -->
@@ -259,7 +306,10 @@ async function copyToClipboard(text: string) {
         <!-- ── Variant A: Locked ── -->
         <template v-if="lead.status === 'locked'">
           <div class="flex items-center justify-between px-5 py-4">
-            <p class="text-sm font-semibold text-foreground">{{ CATEGORY_LABELS[lead.category] ?? lead.category }}</p>
+            <div class="space-y-1.5">
+              <p class="text-sm font-semibold text-foreground">{{ CATEGORY_LABELS[lead.category] ?? lead.category }}</p>
+              <LeadAge v-if="lead.created_at" :created-at="lead.created_at" />
+            </div>
             <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 border rounded-full border-amber-300 text-amber-700 bg-amber-50">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/>
@@ -331,7 +381,10 @@ async function copyToClipboard(text: string) {
         <!-- ── Variant B: Unlocked ── -->
         <template v-else-if="lead.status === 'unlocked'">
           <div class="flex items-center justify-between px-5 py-4">
-            <p class="text-sm font-semibold text-foreground">{{ CATEGORY_LABELS[lead.category] ?? lead.category }}</p>
+            <div class="space-y-1.5">
+              <p class="text-sm font-semibold text-foreground">{{ CATEGORY_LABELS[lead.category] ?? lead.category }}</p>
+              <LeadAge v-if="lead.created_at" :created-at="lead.created_at" />
+            </div>
             <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 border rounded-full border-foreground/30 text-foreground">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/>
