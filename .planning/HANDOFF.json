@@ -18,15 +18,15 @@
   "remaining_tasks": [
     {"name": "Merge fix/messaging-unlock-guard -> development", "status": "done", "detail": "merge --no-ff 5509878, branche supprimée, poussé en prod (395dc83) le 2026-06-15"},
     {"name": "Corriger erreurs typecheck préexistantes (leads/index.get.ts)", "status": "done", "detail": "leadMap typé Map<string, any> ; typecheck projet clean ; commit 395dc83 poussé"},
-    {"name": "Passe visuelle Playwright (/mon-projet/[token], /espace/messages)", "status": "not_started", "note": "audit de vérif seulement — design repoussé en fin de projet"},
-    {"name": "Design minimum messagerie + test réel envoi/réception message (branche feat/messagerie-min)", "status": "not_started"},
+    {"name": "Passe visuelle Playwright (/mon-projet/[token], /espace/messages)", "status": "blocked", "note": "MCP Playwright réclame le canal 'chrome' (absent) — sandbox. Design repoussé en fin de projet de toute façon."},
+    {"name": "Messagerie min + test réel envoi/réception (feat/messagerie-min)", "status": "done", "detail": "Fix bug id pro (claim_id) + polling live 2 sens + endpoint /messages/recent (vrai dernier message). Round-trip pro<->client validé end-to-end via HTTP. Commits b63d05a, c44c382, aa0404d. À merger dans development."},
     {"name": "Planifier le vrai reste de Phase 5 (SMS, cold outreach, email prod)", "status": "not_started", "note": "EN DERNIER par décision utilisateur"},
     {"name": "Phase design TOTALE finale (ux-pro-max -> impeccable -> taste-skill), inclut design email", "status": "not_started", "note": "À la toute fin du projet"}
   ],
   "blockers": [
     {"description": "Playwright MCP configuré sur Chromium mais nécessite restart CC", "type": "human_action", "workaround": "claude --continue après restart"},
     {"description": "Domaine bati-axe.fr non acheté/vérifié chez Resend", "type": "external", "workaround": "Mode test : envoi uniquement vers mike.webfree@gmail.com via onboarding@resend.dev"},
-    {"description": "Auth/session gotrue locale rejette création/login user test (bad_jwt)", "type": "technical", "workaround": "Tests endpoints authentifiés via cookie mocké (E2E) ou revue de code"}
+    {"description": "Tester un endpoint pro AUTHENTIFIÉ en local (RÉSOLU)", "type": "technical", "workaround": "1) signup réel via gotrue (POST /auth/v1/signup, session ES256 immédiate). 2) Forger le cookie avec @supabase/ssr createServerClient + setSession, cookieOptions.name='sb-127-auth-token' (= sb-<hostname.split('.')[0]>-auth-token). 3) curl -H 'Cookie: sb-127-auth-token=...'. Le header Bearer ne marche PAS (serverSupabaseClient lit le cookie). Node 20 : stub globalThis.WebSocket=ws avant import."}
   ],
   "human_actions_pending": [
     {"action": "Redémarrer Claude Code", "context": "Activer le MCP Playwright sur Chromium pour la passe visuelle", "blocking": true},
