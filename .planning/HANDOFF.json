@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-06-15T12:24:36.791Z",
+  "timestamp": "2026-06-16T00:00:00.000Z",
   "phase": "05",
   "phase_name": "SMS + Acquisition + Messagerie",
   "phase_dir": ".planning/phases/05-sms-acquisition-messagerie",
@@ -8,38 +8,40 @@
   "task": null,
   "total_tasks": null,
   "status": "paused",
-  "branch": "fix/messaging-unlock-guard",
+  "branch": "development",
   "completed_tasks": [
     {"name": "Vérification UAT Phase 5 plan 01 (Espace Client & Messagerie)", "status": "done", "detail": "4/5 PASS via HTTP/DB local + smoke prod. Voir 05-UAT.md."},
     {"name": "Fix REQ-03 — verrou de déblocage messagerie", "status": "done", "commit": "1700a83"},
     {"name": "Bascule EMAIL_LIVE (vrais emails en dev)", "status": "done", "commit": "883fc18"},
-    {"name": "Test email réel via Resend", "status": "done", "detail": "Envoyé vers mike.webfree@gmail.com (id 9d811364). Câblage Resend prouvé."}
+    {"name": "Messagerie min + round-trip HTTP local", "status": "done", "detail": "Fix id pro (claim_id) + polling live 2 sens + /messages/recent. Commits b63d05a, c44c382, aa0404d (branche feat/messagerie-min, NON mergée)."},
+    {"name": "Débloquer Playwright (navigateur)", "status": "done", "detail": "sudo apt deps + chromium installés. MCP Playwright reste sur canal 'chrome' (restart CC requis) MAIS non nécessaire : validation faite via scripts Playwright directs (node + playwright-core)."},
+    {"name": "Fix BUG PROD — enum lead_status sur déblocage gratuit", "status": "done", "commit": "b2b2984", "detail": "leads/[id].get.ts insérait status:'unlocked' (absent de l'enum) → free grant jamais émis → pro non-Premium ne pouvait ni débloquer ni messager. Corrigé en 'new'. Mergé development (b86cd17), déployé prod."},
+    {"name": "Fix BUG PROD — expéditeur Resend (domaine non vérifié)", "status": "done", "commit": "325e341", "detail": "email.ts codait from:'noreply@bati-axe.fr' (domaine non vérifié → 403). Rendu configurable via runtimeConfig.emailFrom, défaut onboarding@resend.dev. Mergé development, déployé prod."},
+    {"name": "Validation round-trip messagerie EN PROD (pro→client→pro)", "status": "done", "detail": "Pro envoie 1er message → email livré (Resend 200, reçu en spam sur mike.webfree@gmail.com) → client répond via /mon-projet/[token] → réponse stockée et visible côté pro. Vérifié en base le 2026-06-15."}
   ],
   "remaining_tasks": [
-    {"name": "Merge fix/messaging-unlock-guard -> development", "status": "done", "detail": "merge --no-ff 5509878, branche supprimée, poussé en prod (395dc83) le 2026-06-15"},
-    {"name": "Corriger erreurs typecheck préexistantes (leads/index.get.ts)", "status": "done", "detail": "leadMap typé Map<string, any> ; typecheck projet clean ; commit 395dc83 poussé"},
-    {"name": "Passe visuelle Playwright (/mon-projet/[token], /espace/messages)", "status": "not_started", "note": "audit de vérif seulement — design repoussé en fin de projet"},
-    {"name": "Design minimum messagerie + test réel envoi/réception message (branche feat/messagerie-min)", "status": "not_started"},
+    {"name": "Nettoyer les données de test créées en prod", "status": "not_started", "note": "Projet 'Mike Client Test' (id bf1f19e6-83a6-4269-9484-fca0e3581c02, customer_email mike.webfree@gmail.com), pro 'TEST PLOMBERIE SARL' (id a58b8257-86db-42ca-8613-1456781f64e6, email pro.test.1781553778064@example.com), lead claim_id afbf0574-4de9-4551-826f-e57f25ddbb15 + 3 messages + free_lead_grant. Supprimer via API/CLI Supabase."},
+    {"name": "Merger feat/messagerie-min --no-ff dans development", "status": "not_started", "note": "Messagerie validée. Branche encore ouverte (rappel hook stale-branch)."},
+    {"name": "Poser NUXT_EMAIL_FROM en prod quand bati-axe.fr vérifié chez Resend", "status": "not_started", "note": "Code déjà prêt (défaut onboarding@resend.dev). Mettre 'BÂTI-AXE <noreply@bati-axe.fr>' en Prod ET Preview. Débloque aussi l'envoi multi-destinataires."},
     {"name": "Planifier le vrai reste de Phase 5 (SMS, cold outreach, email prod)", "status": "not_started", "note": "EN DERNIER par décision utilisateur"},
     {"name": "Phase design TOTALE finale (ux-pro-max -> impeccable -> taste-skill), inclut design email", "status": "not_started", "note": "À la toute fin du projet"}
   ],
   "blockers": [
-    {"description": "Playwright MCP configuré sur Chromium mais nécessite restart CC", "type": "human_action", "workaround": "claude --continue après restart"},
-    {"description": "Domaine bati-axe.fr non acheté/vérifié chez Resend", "type": "external", "workaround": "Mode test : envoi uniquement vers mike.webfree@gmail.com via onboarding@resend.dev"},
-    {"description": "Auth/session gotrue locale rejette création/login user test (bad_jwt)", "type": "technical", "workaround": "Tests endpoints authentifiés via cookie mocké (E2E) ou revue de code"}
+    {"description": "Playwright navigateur (RÉSOLU 2026-06-15)", "type": "technical", "workaround": "sudo apt deps + npx playwright install chromium. Scripts Playwright directs (node, import playwright-core). Pas besoin du MCP (qui veut le canal 'chrome', restart CC requis)."},
+    {"description": "Domaine bati-axe.fr non vérifié chez Resend", "type": "external", "workaround": "Mode test Resend : from=onboarding@resend.dev, livre UNIQUEMENT vers l'adresse du compte (mike.webfree@gmail.com). Pour tester la messagerie prod, customer_email du projet DOIT être mike.webfree@gmail.com. Vérifier le code d'envoi dans le dashboard Resend (200 vs 403)."},
+    {"description": "Tester un endpoint pro AUTHENTIFIÉ (RÉSOLU)", "type": "technical", "workaround": "En prod : pas de confirmation email → signup donne session immédiate. Piloter login via UI Playwright (form /pro/claim, 'form button[type=submit]'), puis appeler les endpoints par fetch dans le contexte navigateur authentifié (cookie auto). Déblocage gratuit auto via GET /api/v1/leads/{projectId} (free_leads_used<3)."}
   ],
   "human_actions_pending": [
-    {"action": "Redémarrer Claude Code", "context": "Activer le MCP Playwright sur Chromium pour la passe visuelle", "blocking": true},
-    {"action": "Vérifier l'email reçu sur mike.webfree@gmail.com + cliquer le magic link", "context": "Validation manuelle réception Phase 5", "blocking": false},
-    {"action": "Acheter et vérifier le domaine bati-axe.fr chez Resend", "context": "Débloque l'envoi multi-destinataires (yopmail, vrais clients)", "blocking": false}
+    {"action": "Nettoyer les données de test en prod", "context": "Décider si on supprime le projet/pro/messages de test créés le 2026-06-15", "blocking": false},
+    {"action": "Acheter et vérifier le domaine bati-axe.fr chez Resend", "context": "Débloque l'envoi multi-destinataires + l'expéditeur de marque. Ensuite poser NUXT_EMAIL_FROM.", "blocking": false}
   ],
   "decisions": [
+    {"decision": "Validation prod via scripts Playwright directs, pas le MCP", "rationale": "Le MCP Playwright exige le canal 'chrome' (restart CC) ; node + playwright-core suffit et évite le restart", "phase": "05"},
+    {"decision": "Expéditeur Resend configurable, défaut onboarding@resend.dev", "rationale": "Permet de tester la messagerie en prod sans domaine vérifié ; bascule vers noreply@bati-axe.fr par NUXT_EMAIL_FROM le moment venu", "phase": "05"},
     {"decision": "Phase design totale en toute fin (ux-pro-max -> impeccable -> taste-skill)", "rationale": "Centraliser tout le travail visuel, design email inclus", "phase": "post-05"},
-    {"decision": "Planification du reste de Phase 5 en dernier", "rationale": "Préférence utilisateur — d'abord near-term (messagerie min + test)", "phase": "05"},
-    {"decision": "Pas de branche séparée pour le design email maintenant", "rationale": "Intégré à la phase design finale", "phase": "post-05"},
-    {"decision": "Fix REQ-03 réplique maskLead.isUnlocked au lieu d'un nouveau modèle", "rationale": "Cohérence avec le contrôle serveur existant (ADR-004)", "phase": "05"}
+    {"decision": "Planification du reste de Phase 5 en dernier", "rationale": "Préférence utilisateur — d'abord near-term (messagerie min + test)", "phase": "05"}
   ],
   "uncommitted_files": [],
-  "next_action": "Sur development (à jour + poussé). Prochaine tâche de l'ordre fixé : messagerie min + test réel envoi/réception d'un message (branche feat/messagerie-min). La passe visuelle Playwright reste optionnelle (audit, le design est repoussé en fin de projet).",
-  "context_notes": "On était en mode vérification du plan 05-01 (déjà codé hors flux GSD, sans SUMMARY). Tout le fond backend est validé. Reste surtout le visuel + le merge + la dette typecheck. Serveur dev sur :3000 (CLAUDE.md : un seul serveur). Voir mémoire project_design_strategy."
+  "next_action": "Sur development (à jour + poussé, prod déployée avec les 2 fix). Prochaines tâches : 1) nettoyer les données de test prod, 2) merger feat/messagerie-min --no-ff dans development. Ensuite : planif du vrai reste de Phase 5 (SMS/outreach) puis phase design finale.",
+  "context_notes": "Session 2026-06-15 : débloqué Playwright (sudo deps + chromium) et validé le round-trip messagerie EN PROD de bout en bout. Au passage, 2 bugs prod trouvés et corrigés + déployés : (1) enum lead_status ('unlocked' invalide) cassait le déblocage gratuit ; (2) expéditeur Resend sur domaine non vérifié → 403. Email livré (200, en spam Gmail), réponse client stockée. Pièges déploiement consignés dans la mémoire project_deploiement_cloudflare. Données de test laissées en prod (à nettoyer). feat/messagerie-min toujours à merger. Serveur dev sur :3000 (un seul)."
 }
