@@ -55,7 +55,7 @@ export default defineEventHandler(async (event) => {
     .select('id, project_id, status, unlocked_at')
     .eq('pro_id', user.id)
 
-  const leadMap = new Map((leads || []).map((l: any) => [l.project_id, l]))
+  const leadMap = new Map<string, any>((leads || []).map((l: any) => [l.project_id, l]))
 
   const now = new Date()
   const enriched = (projects || []).map((proj: any) => {
