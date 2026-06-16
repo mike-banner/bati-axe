@@ -3,13 +3,17 @@
 
 export interface LeadDecisionRow {
   status: string // lead_status métier ('new' | 'claimed' | 'lost' | ...)
+  unlocked_at: string | null // horodatage de déblocage (free-grant, 72h ou claim)
   customer_decision: string // 'pending' | 'refused' | 'selected'
 }
 
-// Un pro est "engagé" sur le projet quand il a débloqué/réclamé le lead.
-// Dans le modèle actuel, l'état verrouillé/débloqué = status 'claimed'.
+// Un pro est "engagé" sur le projet dès qu'il a DÉBLOQUÉ le lead — quel que soit le
+// canal. Dans tous les cas de déblocage (claim Premium, free-grant, déblocage 72h),
+// `unlocked_at` est renseigné (cf. leads/[id].get.ts + claim.patch.ts). On garde
+// status='claimed' en filet de sécurité. Un lead passé en 'lost' n'est plus engagé.
 export function isEngaged(lead: LeadDecisionRow): boolean {
-  return lead.status === 'claimed'
+  if (lead.status === 'lost') return false
+  return lead.unlocked_at != null || lead.status === 'claimed'
 }
 
 // Le projet doit repartir au marché quand il y a au moins un pro engagé

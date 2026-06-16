@@ -1,46 +1,51 @@
 import { describe, it, expect } from 'vitest'
 import { shouldRelaunch, canRelaunch, isEngaged, MAX_RELAUNCHES } from '../../server/utils/leadFeedback'
 
+const TS = '2026-06-15T20:00:00Z'
+
 describe('leadFeedback — feedback loop particulier (REQ-06)', () => {
-  it('isEngaged : seul un lead claimed est engagé', () => {
-    expect(isEngaged({ status: 'claimed', customer_decision: 'pending' })).toBe(true)
-    expect(isEngaged({ status: 'new', customer_decision: 'pending' })).toBe(false)
-    expect(isEngaged({ status: 'lost', customer_decision: 'refused' })).toBe(false)
+  it('isEngaged : un lead débloqué (unlocked_at) est engagé, claim OU free-grant', () => {
+    // claim Premium
+    expect(isEngaged({ status: 'claimed', unlocked_at: TS, customer_decision: 'pending' })).toBe(true)
+    // free-grant : status 'new' mais unlocked_at posé
+    expect(isEngaged({ status: 'new', unlocked_at: TS, customer_decision: 'pending' })).toBe(true)
+    // pas débloqué
+    expect(isEngaged({ status: 'new', unlocked_at: null, customer_decision: 'pending' })).toBe(false)
+    // remis au marché → plus engagé
+    expect(isEngaged({ status: 'lost', unlocked_at: TS, customer_decision: 'refused' })).toBe(false)
   })
 
   it('aucun pro engagé → pas de remise au marché', () => {
     expect(shouldRelaunch([])).toBe(false)
-    expect(shouldRelaunch([{ status: 'new', customer_decision: 'pending' }])).toBe(false)
+    expect(shouldRelaunch([{ status: 'new', unlocked_at: null, customer_decision: 'pending' }])).toBe(false)
   })
 
-  it('tous les pros engagés refusés → remise au marché', () => {
+  it('tous les pros engagés refusés → remise au marché (free-grant inclus)', () => {
     expect(shouldRelaunch([
-      { status: 'claimed', customer_decision: 'refused' },
-      { status: 'claimed', customer_decision: 'refused' },
-      { status: 'claimed', customer_decision: 'refused' },
+      { status: 'claimed', unlocked_at: TS, customer_decision: 'refused' },
+      { status: 'new', unlocked_at: TS, customer_decision: 'refused' },
     ])).toBe(true)
   })
 
   it('un seul pro engagé encore en attente → pas de remise', () => {
     expect(shouldRelaunch([
-      { status: 'claimed', customer_decision: 'refused' },
-      { status: 'claimed', customer_decision: 'pending' },
+      { status: 'claimed', unlocked_at: TS, customer_decision: 'refused' },
+      { status: 'claimed', unlocked_at: TS, customer_decision: 'pending' },
     ])).toBe(false)
   })
 
   it('un pro retenu (selected) → jamais de remise même si les autres sont refusés', () => {
     expect(shouldRelaunch([
-      { status: 'claimed', customer_decision: 'refused' },
-      { status: 'claimed', customer_decision: 'selected' },
+      { status: 'claimed', unlocked_at: TS, customer_decision: 'refused' },
+      { status: 'claimed', unlocked_at: TS, customer_decision: 'selected' },
     ])).toBe(false)
   })
 
-  it('les leads non engagés (lost) ne comptent pas dans la décision', () => {
-    // 2 anciens refusés passés en 'lost' + 1 nouveau pro engagé encore pending
+  it('les leads remis au marché (lost) ne comptent pas dans la décision', () => {
     expect(shouldRelaunch([
-      { status: 'lost', customer_decision: 'refused' },
-      { status: 'lost', customer_decision: 'refused' },
-      { status: 'claimed', customer_decision: 'pending' },
+      { status: 'lost', unlocked_at: TS, customer_decision: 'refused' },
+      { status: 'lost', unlocked_at: TS, customer_decision: 'refused' },
+      { status: 'new', unlocked_at: TS, customer_decision: 'pending' },
     ])).toBe(false)
   })
 

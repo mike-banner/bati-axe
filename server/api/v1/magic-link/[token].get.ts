@@ -52,12 +52,14 @@ export default defineEventHandler(async (event) => {
       id,
       customer_decision,
       status,
+      unlocked_at,
       professionals (
         company_name, canonical_slug, postal_code, category, logo_url, is_verified
       )
     `)
     .eq('project_id', project.id)
-    .eq('status', 'claimed')
+    .not('unlocked_at', 'is', null)
+    .neq('status', 'lost')
 
   const pros = (engagedLeads || []).map((l: any) => {
     const p = l.professionals || {}

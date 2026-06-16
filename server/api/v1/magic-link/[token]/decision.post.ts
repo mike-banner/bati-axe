@@ -66,21 +66,22 @@ export default defineEventHandler(async (event) => {
   // 4. "refused" → faut-il remettre le projet au marché ?
   const { data: projectLeads } = await supabase
     .from('leads')
-    .select('status, customer_decision')
+    .select('status, unlocked_at, customer_decision')
     .eq('project_id', project.id)
 
   if (!shouldRelaunch(projectLeads || []) || !canRelaunch(project.relaunch_count ?? 0)) {
     return { success: true, relaunched: false }
   }
 
-  // 5. Remise au marché : libérer les slots du cap en passant les leads engagés
-  // refusés à 'lost' (ils ne comptent plus comme 'claimed' dans claim.patch).
+  // 5. Remise au marché : passer les leads engagés refusés à 'lost'. Cela libère les
+  // slots du cap (claim Premium) et retire les conversations refusées de l'espace
+  // client, tout en gardant l'historique. Couvre claim ET free-grant (unlocked_at).
   await supabase
     .from('leads')
     .update({ status: 'lost' })
     .eq('project_id', project.id)
-    .eq('status', 'claimed')
     .eq('customer_decision', 'refused')
+    .not('unlocked_at', 'is', null)
 
   await supabase
     .from('projects')
