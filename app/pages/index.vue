@@ -120,8 +120,8 @@ const heroPhoto = 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?
     <!-- ───────────────── Preuve : avant / après ───────────────── -->
     <section class="mx-auto w-full max-w-[1400px] px-[clamp(1.25rem,5vw,4rem)] py-[clamp(3.5rem,7vw,6rem)]">
       <div class="mb-10 max-w-[52ch]">
-        <h2 class="font-heading text-3xl font-medium text-foreground" style="text-wrap: balance">Le résultat, pas la promesse</h2>
-        <p class="mt-3 text-base leading-relaxed text-muted-foreground">
+        <h2 class="font-heading text-4xl font-bold text-text" style="text-wrap: balance">Le résultat, pas la promesse</h2>
+        <p class="mt-3 text-base leading-relaxed text-gray-700">
           Des chantiers menés par des artisans vérifiés de la plateforme. Glissez pour comparer.
         </p>
       </div>
@@ -141,10 +141,10 @@ const heroPhoto = 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?
     <section class="mx-auto w-full max-w-[1400px] px-[clamp(1.25rem,5vw,4rem)] py-[clamp(3.5rem,7vw,6rem)]">
       <div class="grid grid-cols-1 items-start gap-[clamp(2rem,5vw,4rem)] md:grid-cols-2">
         <div>
-          <h2 class="font-heading text-[clamp(1.75rem,3vw,2.5rem)] font-medium text-foreground" style="text-wrap: balance">
+          <h2 class="font-heading text-[clamp(1.75rem,3vw,2.5rem)] font-bold text-text" style="text-wrap: balance">
             Chaque professionnel est vérifié à la main.
           </h2>
-          <p class="mt-4 max-w-[48ch] text-base leading-relaxed text-muted-foreground">
+          <p class="mt-4 max-w-[48ch] text-base leading-relaxed text-gray-700">
             Aucun algorithme. Un membre de notre équipe contrôle la décennale, le Kbis et la zone d'intervention avant toute activation. Un artisan non conforme ne peut pas accéder aux leads.
           </p>
         </div>
@@ -162,8 +162,8 @@ const heroPhoto = 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?
               <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
             </span>
             <div>
-              <p class="text-sm font-semibold text-foreground">{{ item.t }}</p>
-              <p class="mt-0.5 text-sm text-muted-foreground">{{ item.d }}</p>
+              <p class="text-sm font-semibold text-text">{{ item.t }}</p>
+              <p class="mt-0.5 text-sm text-gray-700">{{ item.d }}</p>
             </div>
           </li>
         </ul>
@@ -171,17 +171,17 @@ const heroPhoto = 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?
     </section>
 
     <!-- ───────────────── CTA final ───────────────── -->
-    <section class="w-full border-t border-border-strong bg-background-sable">
+    <section class="w-full border-t border-border bg-background">
       <div class="mx-auto w-full max-w-[1400px] px-[clamp(1.25rem,5vw,4rem)] py-[clamp(3.5rem,7vw,5.5rem)] text-center">
-        <h2 class="mx-auto max-w-[20ch] font-heading text-[clamp(1.75rem,3.5vw,3rem)] font-medium text-foreground" style="text-wrap: balance">
+        <h2 class="mx-auto max-w-[20ch] font-heading text-[clamp(1.75rem,3.5vw,3rem)] font-bold text-text" style="text-wrap: balance">
           Prêt à démarrer votre projet ?
         </h2>
-        <p class="mx-auto mt-4 max-w-[44ch] text-base text-muted-foreground">
+        <p class="mx-auto mt-4 max-w-[44ch] text-base text-gray-700">
           Décrivez votre besoin en 3 minutes. Nous nous occupons de la mise en relation.
         </p>
         <NuxtLink
           to="/simulateur"
-          class="mt-8 inline-flex h-12 items-center gap-2 rounded-md bg-cta px-8 text-sm font-semibold text-white transition-colors hover:bg-cta-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          class="mt-8 inline-flex h-12 items-center gap-2 rounded-md bg-cta px-8 text-sm font-semibold text-white transition-all hover:opacity-90 hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary cursor-pointer"
         >
           Commencer la simulation
           <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7" /></svg>
